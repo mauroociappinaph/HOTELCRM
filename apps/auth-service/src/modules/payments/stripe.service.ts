@@ -339,7 +339,7 @@ export class StripeService {
         .from('stripe_webhook_events')
         .update({
           processed: false,
-          error_message: error.message,
+          error_message: error instanceof Error ? error.message : 'Unknown error',
         })
         .eq('stripe_event_id', event.id);
 
@@ -355,7 +355,7 @@ export class StripeService {
       const client = this.supabaseService.getClient();
 
       // Get user_id and agency_id from customer metadata
-      const customer = await this.stripe.customers.retrieve(subscription.customer as string);
+      const customer = await this.stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
       const userId = customer.metadata?.user_id;
       const agencyId = customer.metadata?.agency_id;
 
@@ -443,7 +443,7 @@ export class StripeService {
       const client = this.supabaseService.getClient();
 
       // Create invoice record
-      const invoiceData = {
+      const invoiceData: any = {
         stripe_invoice_id: invoice.id,
         status: invoice.status,
         amount_due_cents: invoice.amount_due,
@@ -460,8 +460,8 @@ export class StripeService {
       if (invoice.subscription) {
         const { data: subscription } = await client
           .from('subscriptions')
-          .select('user_id, agency_id, stripe_customer_id')
-          .eq('stripe_subscription_id', invoice.subscription)
+          .select('user_id, agency_id, stripe_customer_id, id')
+          .eq('stripe_subscription_id', invoice.subscription as string)
           .single();
 
         if (subscription) {
