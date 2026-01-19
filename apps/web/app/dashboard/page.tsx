@@ -2,29 +2,17 @@
 
 import { useAuth } from '../../lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-
-interface DashboardStats {
-  totalBookings: number
-  totalClients: number
-  totalRevenue: number
-  pendingPayments: number
-  upcomingBookings: number
-  averageBookingValue: number
-}
+import { useEffect } from 'react'
+import { useDashboardStore } from '../../lib/stores/dashboard-store'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../src/components/ui/card'
+import { Button } from '../../src/components/ui/button'
+import { Badge } from '../../src/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '../../src/components/ui/avatar'
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState<DashboardStats>({
-    totalBookings: 0,
-    totalClients: 0,
-    totalRevenue: 0,
-    pendingPayments: 0,
-    upcomingBookings: 0,
-    averageBookingValue: 0
-  })
+  const { stats, recentActivity, loading: dashboardLoading, fetchDashboardData } = useDashboardStore()
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -36,48 +24,11 @@ export default function DashboardPage() {
   // Load dashboard data
   useEffect(() => {
     if (user && profile) {
-      loadDashboardStats()
+      fetchDashboardData()
     }
-  }, [user, profile])
+  }, [user, profile, fetchDashboardData])
 
-  const loadDashboardStats = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/dashboard/stats`, {
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data.stats)
-      } else {
-        console.error('Error fetching dashboard data:', response.statusText)
-        // Fallback to mock data
-        setStats({
-          totalBookings: 45,
-          totalClients: 23,
-          totalRevenue: 125000,
-          pendingPayments: 3,
-          upcomingBookings: 8,
-          averageBookingValue: 2778
-        })
-      }
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error)
-      // Fallback to mock data
-      setStats({
-        totalBookings: 45,
-        totalClients: 23,
-        totalRevenue: 125000,
-        pendingPayments: 3,
-        upcomingBookings: 8,
-        averageBookingValue: 2778
-      })
-    }
-  }
-
-  if (loading) {
+  if (loading || dashboardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -135,7 +86,7 @@ export default function DashboardPage() {
                       Total Reservas
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {stats.totalBookings}
+                      {stats?.totalBookings || 0}
                     </dd>
                   </dl>
                 </div>
@@ -158,7 +109,7 @@ export default function DashboardPage() {
                       Total Clientes
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {stats.totalClients}
+                      {stats?.totalClients || 0}
                     </dd>
                   </dl>
                 </div>
@@ -181,7 +132,7 @@ export default function DashboardPage() {
                       Ingresos Totales
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      ${stats.totalRevenue.toLocaleString('es-AR')}
+                      ${(stats?.totalRevenue || 0).toLocaleString('es-AR')}
                     </dd>
                   </dl>
                 </div>
@@ -204,7 +155,7 @@ export default function DashboardPage() {
                       Pagos Pendientes
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {stats.pendingPayments}
+                      {stats?.pendingPayments || 0}
                     </dd>
                   </dl>
                 </div>

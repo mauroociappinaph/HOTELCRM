@@ -1,8 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase, UserProfile } from './supabase'
+import { useAuthStore } from './stores/auth-store'
 
 interface AuthContextType {
   user: User | null
@@ -17,10 +18,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const {
+    user,
+    session,
+    profile,
+    loading,
+    setUser,
+    setSession,
+    setProfile,
+    setLoading,
+    login,
+    logout,
+  } = useAuthStore()
 
   // Get user profile from our backend
   const fetchUserProfile = async (): Promise<UserProfile | null> => {
@@ -76,10 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error
       }
 
-      // Clear local state
-      setUser(null)
-      setSession(null)
-      setProfile(null)
+      // Clear Zustand state
+      logout()
     } catch (error) {
       console.error('Error signing out:', error)
       throw error
@@ -137,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [setUser, setSession, setProfile, setLoading])
 
   const value = {
     user,
