@@ -24,7 +24,7 @@ export class SupabaseService {
     if (!supabaseUrl || !supabaseKey) {
       throw new Error(
         'Supabase credentials are missing in environment variables. ' +
-        'Please set SUPABASE_URL and SUPABASE_ANON_KEY in .env.local'
+          'Please set SUPABASE_URL and SUPABASE_ANON_KEY in .env.local',
       );
     }
 

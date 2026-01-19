@@ -71,7 +71,6 @@ export class DashboardService {
         recentActivity,
         alerts: [],
       });
-
     } catch (error) {
       this.logger.error('Error fetching dashboard stats:', error);
       throw error;

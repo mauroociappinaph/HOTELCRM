@@ -23,7 +23,7 @@ export class AiController {
   async sendMessage(
     @Param('sessionId') sessionId: string,
     @Request() req: any,
-    @Body() body: { message: string; model?: string }
+    @Body() body: { message: string; model?: string },
   ) {
     const userId = req.user.id;
     const agencyId = req.user.user_metadata?.agency_id || 'default';

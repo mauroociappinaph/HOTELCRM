@@ -19,7 +19,10 @@ export class SupabaseAuthGuard implements CanActivate {
       const client = this.supabaseService.getClient();
 
       // Verify the JWT token with Supabase
-      const { data: { user }, error } = await client.auth.getUser(token);
+      const {
+        data: { user },
+        error,
+      } = await client.auth.getUser(token);
 
       if (error || !user) {
         return false;
@@ -28,7 +31,6 @@ export class SupabaseAuthGuard implements CanActivate {
       // Attach user to request object
       request.user = user;
       return true;
-
     } catch (error) {
       return false;
     }

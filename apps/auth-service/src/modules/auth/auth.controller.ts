@@ -73,11 +73,12 @@ export class AuthController {
   @Put('profile')
   async updateProfile(
     @Headers('authorization') authHeader: string,
-    @Body() updates: {
+    @Body()
+    updates: {
       fullName?: string;
       agencyId?: string;
       role?: 'admin' | 'agent' | 'manager';
-    }
+    },
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization header required');
@@ -95,7 +96,7 @@ export class AuthController {
   @Get('agency/:agencyId/users')
   async listAgencyUsers(
     @Param('agencyId') agencyId: string,
-    @Headers('authorization') authHeader: string
+    @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization header required');
@@ -115,7 +116,7 @@ export class AuthController {
   async handleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
-    @Query('error') error?: string
+    @Query('error') error?: string,
   ) {
     if (error) {
       throw new UnauthorizedException(`OAuth error: ${error}`);
@@ -165,7 +166,7 @@ export class AuthController {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Token refresh failed'
+        error instanceof Error ? error.message : 'Token refresh failed',
       );
     }
   }

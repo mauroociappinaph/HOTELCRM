@@ -65,7 +65,7 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to generate Google login URL'
+        error instanceof Error ? error.message : 'Failed to generate Google login URL',
       );
     }
   }
@@ -95,7 +95,7 @@ export class AuthService {
       return this.getUserProfile(session.session.user.id);
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to get current user'
+        error instanceof Error ? error.message : 'Failed to get current user',
       );
     }
   }
@@ -114,18 +114,21 @@ export class AuthService {
       // Obtener perfil extendido de la tabla profiles
       const { data: profile, error: profileError } = await client
         .from('profiles')
-        .select(`
+        .select(
+          `
           *,
           agencies:agency_id (
             id,
             name,
             tax_id
           )
-        `)
+        `,
+        )
         .eq('id', userId)
         .single();
 
-      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (profileError && profileError.code !== 'PGRST116') {
+        // PGRST116 = no rows returned
         throw profileError;
       }
 
@@ -140,7 +143,7 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to get user profile'
+        error instanceof Error ? error.message : 'Failed to get user profile',
       );
     }
   }
@@ -164,7 +167,7 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to sign out'
+        error instanceof Error ? error.message : 'Failed to sign out',
       );
     }
   }
@@ -172,11 +175,14 @@ export class AuthService {
   /**
    * Actualiza el perfil del usuario.
    */
-  async updateProfile(userId: string, updates: {
-    fullName?: string;
-    agencyId?: string;
-    role?: 'admin' | 'agent' | 'manager';
-  }) {
+  async updateProfile(
+    userId: string,
+    updates: {
+      fullName?: string;
+      agencyId?: string;
+      role?: 'admin' | 'agent' | 'manager';
+    },
+  ) {
     try {
       const client = this.supabaseService.getClient();
 
@@ -209,11 +215,7 @@ export class AuthService {
         result = data;
       } else {
         // Create new profile
-        const { data, error } = await client
-          .from('profiles')
-          .insert(profileData)
-          .select()
-          .single();
+        const { data, error } = await client.from('profiles').insert(profileData).select().single();
 
         if (error) throw error;
         result = data;
@@ -225,7 +227,7 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to update profile'
+        error instanceof Error ? error.message : 'Failed to update profile',
       );
     }
   }
@@ -253,7 +255,8 @@ export class AuthService {
       // Obtener todos los usuarios de la agencia
       const { data: users, error: usersError } = await client
         .from('profiles')
-        .select(`
+        .select(
+          `
           id,
           full_name,
           role,
@@ -262,7 +265,8 @@ export class AuthService {
             name,
             tax_id
           )
-        `)
+        `,
+        )
         .eq('agency_id', agencyId);
 
       if (usersError) throw usersError;
@@ -273,7 +277,7 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Failed to list agency users'
+        error instanceof Error ? error.message : 'Failed to list agency users',
       );
     }
   }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitters';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenRouter } from '@openrouter/sdk';
 
 @Injectable()
@@ -41,7 +41,11 @@ export class EmbeddingsService {
   /**
    * Split document into chunks for embedding
    */
-  async splitDocument(content: string, chunkSize: number = 1000, overlap: number = 200): Promise<string[]> {
+  async splitDocument(
+    content: string,
+    chunkSize: number = 1000,
+    overlap: number = 200,
+  ): Promise<string[]> {
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize,
       chunkOverlap: overlap,
@@ -59,7 +63,7 @@ export class EmbeddingsService {
     documentId: string,
     agencyId: string,
     chunks: string[],
-    embeddings: number[][]
+    embeddings: number[][],
   ): Promise<void> {
     const client = this.supabaseService.getClient();
 
@@ -78,9 +82,7 @@ export class EmbeddingsService {
       const batchSize = 100;
       for (let i = 0; i < embeddingsData.length; i += batchSize) {
         const batch = embeddingsData.slice(i, i + batchSize);
-        const { error } = await client
-          .from('document_embeddings')
-          .insert(batch);
+        const { error } = await client.from('document_embeddings').insert(batch);
 
         if (error) {
           throw error;
@@ -97,11 +99,7 @@ export class EmbeddingsService {
   /**
    * Process and embed a document
    */
-  async processDocument(
-    documentId: string,
-    agencyId: string,
-    content: string
-  ): Promise<void> {
+  async processDocument(documentId: string, agencyId: string, content: string): Promise<void> {
     try {
       // Split document into chunks
       const chunks = await this.splitDocument(content);
@@ -129,15 +127,17 @@ export class EmbeddingsService {
   async searchSimilarDocuments(
     query: string,
     agencyId: string,
-    limit: number = 5
-  ): Promise<Array<{
-    document_id: string;
-    chunk_content: string;
-    similarity: number;
-    document_title: string;
-    document_category: string;
-    metadata?: any;
-  }>> {
+    limit: number = 5,
+  ): Promise<
+    Array<{
+      document_id: string;
+      chunk_content: string;
+      similarity: number;
+      document_title: string;
+      document_category: string;
+      metadata?: any;
+    }>
+  > {
     try {
       const client = this.supabaseService.getClient();
 
@@ -168,7 +168,7 @@ export class EmbeddingsService {
   async updateDocumentEmbeddings(
     documentId: string,
     agencyId: string,
-    newContent: string
+    newContent: string,
   ): Promise<void> {
     try {
       const client = this.supabaseService.getClient();

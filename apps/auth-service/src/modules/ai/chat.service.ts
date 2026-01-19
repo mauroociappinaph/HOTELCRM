@@ -54,7 +54,7 @@ export class ChatService {
     userId: string,
     agencyId: string,
     message: string,
-    model: string = 'openai/gpt-4o'
+    model: string = 'openai/gpt-4o',
   ): Promise<{
     response: string;
     sources: Array<{
@@ -71,25 +71,23 @@ export class ChatService {
       const client = this.supabaseService.getClient();
 
       // Save user message
-      await client
-        .from('ai_chat_messages')
-        .insert({
-          session_id: sessionId,
-          role: 'user',
-          content: message,
-        });
+      await client.from('ai_chat_messages').insert({
+        session_id: sessionId,
+        role: 'user',
+        content: message,
+      });
 
       // Search for relevant context using RAG
       const contextResults = await this.embeddingsService.searchSimilarDocuments(
         message,
         agencyId,
-        3
+        3,
       );
 
       // Prepare context for the AI
       const context = contextResults
-        .filter(result => result.similarity > 0.7) // Only highly relevant results
-        .map(result => `[${result.document_title}] ${result.chunk_content}`)
+        .filter((result) => result.similarity > 0.7) // Only highly relevant results
+        .map((result) => `[${result.document_title}] ${result.chunk_content}`)
         .join('\n\n');
 
       // Prepare the prompt with context
@@ -109,13 +107,14 @@ Guidelines:
       const response = await this.openRouter.chat.send({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
+          { role: 'user', content: message },
         ],
         model: model,
         stream: false,
       });
 
-      const aiResponse = response.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
+      const aiResponse =
+        response.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
       const tokensUsed = response.usage?.totalTokens || 0;
 
       // Calculate approximate cost (rough estimate)
@@ -123,7 +122,7 @@ Guidelines:
       const estimatedCost = tokensUsed * costPerToken;
 
       // Convert sources to expected format
-      const sources = contextResults.slice(0, 3).map(result => ({
+      const sources = contextResults.slice(0, 3).map((result) => ({
         document_id: result.document_id,
         content: result.chunk_content,
         similarity: result.similarity,
@@ -132,19 +131,17 @@ Guidelines:
       }));
 
       // Save AI response
-      await client
-        .from('ai_chat_messages')
-        .insert({
-          session_id: sessionId,
-          role: 'assistant',
-          content: typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse),
-          tokens_used: tokensUsed,
-          model_used: model,
-          metadata: {
-            sources,
-            cost: estimatedCost,
-          },
-        });
+      await client.from('ai_chat_messages').insert({
+        session_id: sessionId,
+        role: 'assistant',
+        content: typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse),
+        tokens_used: tokensUsed,
+        model_used: model,
+        metadata: {
+          sources,
+          cost: estimatedCost,
+        },
+      });
 
       // Update session stats (manual calculation since sql helper doesn't exist)
       const { data: currentSession } = await client
@@ -164,22 +161,21 @@ Guidelines:
       }
 
       // Log usage
-      await client
-        .from('ai_usage_logs')
-        .insert({
-          agency_id: agencyId,
-          user_id: userId,
-          service_type: 'chat',
-          model_used: model,
-          tokens_used: tokensUsed,
-          cost_usd: estimatedCost,
-          request_data: { message, model },
-          response_data: {
-            response: typeof aiResponse === 'string'
+      await client.from('ai_usage_logs').insert({
+        agency_id: agencyId,
+        user_id: userId,
+        service_type: 'chat',
+        model_used: model,
+        tokens_used: tokensUsed,
+        cost_usd: estimatedCost,
+        request_data: { message, model },
+        response_data: {
+          response:
+            typeof aiResponse === 'string'
               ? aiResponse.substring(0, 500)
-              : JSON.stringify(aiResponse).substring(0, 500)
-          },
-        });
+              : JSON.stringify(aiResponse).substring(0, 500),
+        },
+      });
 
       return {
         response: typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse),
@@ -196,14 +192,19 @@ Guidelines:
   /**
    * Get chat session history
    */
-  async getSessionHistory(sessionId: string, userId: string): Promise<Array<{
-    id: string;
-    role: string;
-    content: string;
-    created_at: string;
-    tokens_used?: number;
-    metadata?: any;
-  }>> {
+  async getSessionHistory(
+    sessionId: string,
+    userId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      role: string;
+      content: string;
+      created_at: string;
+      tokens_used?: number;
+      metadata?: any;
+    }>
+  > {
     try {
       const client = this.supabaseService.getClient();
 
@@ -227,13 +228,18 @@ Guidelines:
   /**
    * Get user's chat sessions
    */
-  async getUserSessions(userId: string, agencyId: string): Promise<Array<{
-    id: string;
-    session_name?: string;
-    created_at: string;
-    total_tokens: number;
-    total_cost: number;
-  }>> {
+  async getUserSessions(
+    userId: string,
+    agencyId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      session_name?: string;
+      created_at: string;
+      total_tokens: number;
+      total_cost: number;
+    }>
+  > {
     try {
       const client = this.supabaseService.getClient();
 
@@ -263,10 +269,7 @@ Guidelines:
       const client = this.supabaseService.getClient();
 
       // Delete messages first (cascade will handle this, but being explicit)
-      await client
-        .from('ai_chat_messages')
-        .delete()
-        .eq('session_id', sessionId);
+      await client.from('ai_chat_messages').delete().eq('session_id', sessionId);
 
       // Delete session
       const { error } = await client
@@ -289,12 +292,17 @@ Guidelines:
   /**
    * Generate AI recommendations based on agency data
    */
-  async generateRecommendations(agencyId: string, userId: string): Promise<Array<{
-    type: string;
-    title: string;
-    description: string;
-    confidence_score: number;
-  }>> {
+  async generateRecommendations(
+    agencyId: string,
+    userId: string,
+  ): Promise<
+    Array<{
+      type: string;
+      title: string;
+      description: string;
+      confidence_score: number;
+    }>
+  > {
     try {
       const client = this.supabaseService.getClient();
 
@@ -310,13 +318,14 @@ Guidelines:
 
       if (stats && stats.length > 0) {
         const totalRevenue = stats.reduce((sum, booking) => sum + booking.total_amount, 0);
-        const completedBookings = stats.filter(b => b.status === 'completed').length;
+        const completedBookings = stats.filter((b) => b.status === 'completed').length;
 
         if (totalRevenue > 50000) {
           recommendations.push({
             type: 'revenue_optimization',
             title: 'Oportunidad de expansión',
-            description: 'Tu agencia ha tenido un excelente rendimiento este mes. Considera expandir tus servicios premium.',
+            description:
+              'Tu agencia ha tenido un excelente rendimiento este mes. Considera expandir tus servicios premium.',
             confidence_score: 0.85,
           });
         }
@@ -325,7 +334,8 @@ Guidelines:
           recommendations.push({
             type: 'booking_optimization',
             title: 'Mejorar conversión de reservas',
-            description: 'Algunas reservas no se completaron. Revisa el proceso de confirmación y seguimiento.',
+            description:
+              'Algunas reservas no se completaron. Revisa el proceso de confirmación y seguimiento.',
             confidence_score: 0.75,
           });
         }
@@ -333,18 +343,16 @@ Guidelines:
 
       // Save recommendations
       if (recommendations.length > 0) {
-        await client
-          .from('ai_recommendations')
-          .insert(
-            recommendations.map(rec => ({
-              agency_id: agencyId,
-              user_id: userId,
-              recommendation_type: rec.type,
-              title: rec.title,
-              description: rec.description,
-              confidence_score: rec.confidence_score,
-            }))
-          );
+        await client.from('ai_recommendations').insert(
+          recommendations.map((rec) => ({
+            agency_id: agencyId,
+            user_id: userId,
+            recommendation_type: rec.type,
+            title: rec.title,
+            description: rec.description,
+            confidence_score: rec.confidence_score,
+          })),
+        );
       }
 
       return recommendations;
