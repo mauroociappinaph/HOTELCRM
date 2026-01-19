@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@hotel-crm/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.48.1",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/auth-helpers-react": "^0.15.0",
+    "@supabase/supabase-js": "^2.90.1",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
