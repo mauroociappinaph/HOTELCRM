@@ -1,4 +1,18 @@
 {
-  "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
-  "*.{json,md}": ["prettier --write"]
+  "*.{ts,tsx}": [
+    "eslint --fix --max-warnings=0",
+    "prettier --write",
+    "tsc --noEmit --skipLibCheck"
+  ],
+  "*.{js,jsx}": [
+    "eslint --fix --max-warnings=0",
+    "prettier --write"
+  ],
+  "*.{json,md,yml,yaml}": [
+    "prettier --write"
+  ],
+  "package.json": [
+    "pnpm exec sort-package-json",
+    "prettier --write"
+  ]
 }

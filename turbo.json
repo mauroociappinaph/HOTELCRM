@@ -1,21 +1,89 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": [
+    "**/.env.*local",
+    "tsconfig.base.json",
+    "eslint.config.js",
+    "prettier.config.js",
+    ".prettierrc"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "SUPABASE_*"]
     },
     "test": {
       "dependsOn": ["build"],
-      "outputs": []
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
+      "env": ["NODE_ENV", "DATABASE_URL", "SUPABASE_*"]
+    },
+    "test:watch": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "DATABASE_URL", "SUPABASE_*"]
     },
     "lint": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "**/*.config.{js,ts}"]
+    },
+    "lint:fix": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "**/*.config.{js,ts}"]
+    },
+    "format": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "**/*.{json,md,yml,yaml}"]
+    },
+    "format:check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "**/*.{json,md,yml,yaml}"]
+    },
+    "type-check": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "**/*.config.{js,ts}", "tsconfig*.json"]
+    },
+    "quality-check": {
+      "dependsOn": ["lint", "format:check", "type-check", "test"],
       "outputs": []
+    },
+    "clean": {
+      "cache": false,
+      "outputs": ["dist/**", ".next/**", "node_modules/.cache/**"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["NODE_ENV", "DATABASE_URL", "SUPABASE_*", "NEXTAUTH_*"]
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "env": ["NODE_ENV", "DATABASE_URL", "SUPABASE_*", "NEXTAUTH_*", "PORT"]
+    },
+    "db:generate": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": ["supabase/migrations/**"],
+      "env": ["DATABASE_URL"]
+    },
+    "db:push": {
+      "dependsOn": ["db:generate"],
+      "outputs": [],
+      "env": ["DATABASE_URL"]
+    },
+    "db:migrate": {
+      "dependsOn": ["db:push"],
+      "outputs": [],
+      "env": ["DATABASE_URL"]
     }
-  }
+  },
+  "ui": "tui"
 }
