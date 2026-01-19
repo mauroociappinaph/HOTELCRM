@@ -23,11 +23,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   // Get user profile from our backend
-  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  const fetchUserProfile = async (): Promise<UserProfile | null> => {
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       })
 
@@ -42,10 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Refresh user profile
   const refreshProfile = async () => {
-    if (user?.id) {
-      const userProfile = await fetchUserProfile(user.id)
-      setProfile(userProfile)
-    }
+    const userProfile = await fetchUserProfile()
+    setProfile(userProfile)
   }
 
   // Sign in with Google
@@ -101,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session?.user ?? null)
 
           if (session?.user) {
-            const userProfile = await fetchUserProfile(session.user.id)
+            const userProfile = await fetchUserProfile()
             setProfile(userProfile)
           }
         }
@@ -124,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           // Fetch user profile when user signs in
-          const userProfile = await fetchUserProfile(session.user.id)
+          const userProfile = await fetchUserProfile()
           setProfile(userProfile)
         } else {
           // Clear profile when user signs out

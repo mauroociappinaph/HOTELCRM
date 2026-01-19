@@ -31,6 +31,13 @@ export default [
         __filename: 'readonly',
       },
     },
+    settings: {
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+        },
+      },
+    },
     plugins: {
       '@typescript-eslint': tseslint,
       security,
@@ -131,6 +138,24 @@ export default [
   // Frontend-specific rules (Next.js)
   {
     files: ['apps/web/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        console: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        // Next.js specific
+        process: 'readonly',
+      },
+    },
     rules: {
       // React/Next.js specific rules
       'react-hooks/rules-of-hooks': 'error',
