@@ -6,7 +6,14 @@
     "build": "nest build",
     "start": "node dist/main",
     "test": "jest",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\"",
+    "type-check": "tsc --noEmit --skipLibCheck",
+    "quality-check": "pnpm run lint && pnpm run format:check && pnpm run type-check && pnpm run test"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

@@ -7,7 +7,7 @@ export const TAX_RATES = {
    * Impuesto PAIS: 30% para servicios en el exterior
    * Aplicable a compras con tarjeta en moneda extranjera
    */
-  IMPUESTO_PAIS: 0.30,
+  IMPUESTO_PAIS: 0.3,
 
   /**
    * Percepción de Ganancias: 45% para tarjetas de crédito

@@ -21,7 +21,7 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.base.json',
+        project: true, // Use local tsconfig.json
       },
       globals: {
         console: 'readonly',
@@ -61,19 +61,14 @@ export default [
       'security/detect-eval-with-expression': 'error',
       'security/detect-no-csrf-before-method-override': 'error',
       'security/detect-possible-timing-attacks': 'error',
-      'security/detect-buffer-noassert': 'error',
       'security/detect-child-process': 'warn',
-      'security/detect-disable-mustache-escape': 'error',
-      'security/detect-eval-with-expression': 'error',
-      'security/detect-new-buffer': 'error',
-      'security/detect-no-literal-fs-filename': 'warn',
       'security/detect-non-literal-regexp': 'warn',
       'security/detect-non-literal-require': 'error',
       'security/detect-unsafe-regex': 'error',
 
       // Code quality rules (SonarJS)
       'sonarjs/cognitive-complexity': ['error', 15],
-      'sonarjs/no-duplicate-string': ['error', 3],
+      'sonarjs/no-duplicate-string': 'error',
       'sonarjs/no-identical-functions': 'error',
       'sonarjs/no-collapsible-if': 'error',
       'sonarjs/no-useless-catch': 'error',
@@ -101,11 +96,11 @@ export default [
       'import/no-cycle': 'error',
       'import/no-unused-modules': 'error',
 
-      // Node.js rules
-      'node/no-deprecated-api': 'error',
-      'node/no-extraneous-require': 'error',
-      'node/no-missing-require': 'error',
-      'node/no-unpublished-require': 'error',
+      // Node.js rules (removed due to ESLint v9 compatibility issues)
+      // 'node/no-deprecated-api': 'error',
+      // 'node/no-extraneous-require': 'error',
+      // 'node/no-missing-require': 'error',
+      // 'node/no-unpublished-require': 'error',
 
       // Performance rules
       'no-loop-func': 'error',

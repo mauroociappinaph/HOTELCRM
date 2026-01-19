@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\" \"app/**/*.{ts,tsx,js,jsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\" \"app/**/*.{ts,tsx,js,jsx}\"",
+    "type-check": "tsc --noEmit --skipLibCheck",
+    "quality-check": "pnpm run lint && pnpm run format:check && pnpm run type-check && pnpm run build"
   },
   "dependencies": {
     "@hotel-crm/shared": "workspace:*",

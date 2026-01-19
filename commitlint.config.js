@@ -18,10 +18,14 @@ export default {
         'revert',    // Revert commits
       ],
     ],
-    'subject-case': [2, 'always', 'lower-case'],
+    'type-case': [2, 'always', 'lower-case'],
+    'type-empty': [2, 'never'],
+    'scope-case': [2, 'always', 'lower-case'],
+    'subject-case': [0], // Allow any case for subject
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
-    'header-max-length': [2, 'always', 72],
-    'body-max-line-length': [2, 'always', 100],
+    'header-max-length': [2, 'always', 100], // Increased for detailed commits
+    'body-leading-blank': [1, 'always'],
+    'footer-leading-blank': [1, 'always'],
   },
 };

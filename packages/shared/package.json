@@ -6,7 +6,14 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "echo 'No tests for shared package'",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "tsc --noEmit --skipLibCheck",
+    "quality-check": "pnpm run lint && pnpm run format:check && pnpm run type-check && pnpm run build"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
