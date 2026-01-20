@@ -430,9 +430,10 @@ export class ChatService {
     try {
       const client = this.supabaseService.getClient();
 
+      // 🔧 OPTIMIZATION: Select only needed fields to prevent over-fetching
       const { data, error } = await client
         .from('ai_chat_sessions')
-        .select('id, session_name, created_at, total_tokens, total_cost')
+        .select('id, session_name, created_at, total_tokens, total_cost') // Only needed fields
         .eq('user_id', userId)
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: false });
@@ -441,7 +442,13 @@ export class ChatService {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map((session: any) => ({
+        id: session.id,
+        session_name: session.session_name,
+        created_at: session.created_at,
+        total_tokens: session.total_tokens || 0,
+        total_cost: session.total_cost || 0,
+      }));
     } catch (error) {
       this.logger.error('Error getting user sessions:', error);
       throw new Error('Failed to get user sessions');

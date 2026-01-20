@@ -81,6 +81,7 @@ export interface QueryOptions {
   orderBy?: Array<{ field: string; direction: 'asc' | 'desc' }>;
   include?: string[];
   exclude?: string[];
+  select?: string; // 🔧 OPTIMIZATION: Allow custom field selection to prevent over-fetching
 }
 
 export interface PaginationOptions extends QueryOptions {

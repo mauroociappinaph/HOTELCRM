@@ -96,7 +96,7 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return (data || []) as T[];
+      return (data || []) as unknown as T[];
     } catch (error) {
       throw new Error(`Failed to find all ${this.tableName}: ${getErrorMessage(error)}`);
     }
@@ -257,7 +257,9 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
   async findMany(filter: Partial<T>, options?: QueryOptions): Promise<T[]> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select('*');
+      // 🔧 OPTIMIZATION: Allow custom select fields to prevent over-fetching
+      const selectFields = options?.select || '*';
+      let query = this.supabaseService.getClient().from(this.tableName).select(selectFields);
 
       // Apply filters
       if (filter) {

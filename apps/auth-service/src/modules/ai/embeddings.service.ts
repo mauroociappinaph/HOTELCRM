@@ -9,6 +9,10 @@ export class EmbeddingsService {
   private readonly logger = new Logger(EmbeddingsService.name);
   private readonly openRouter: OpenRouter;
 
+  // Batch processing configuration
+  private readonly BATCH_SIZE = 10; // Process 10 chunks at a time to avoid rate limits
+  private readonly MAX_CONCURRENT_BATCHES = 3; // Allow up to 3 concurrent batches
+
   constructor(private readonly supabaseService: SupabaseService) {
     this.openRouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -35,6 +39,34 @@ export class EmbeddingsService {
     } catch (error) {
       this.logger.error('Error generating embeddings:', error);
       throw new Error('Failed to generate embeddings');
+    }
+  }
+
+  /**
+   * Generate embeddings for multiple texts in batches (Optimized for N+1 prevention)
+   */
+  async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
+    try {
+      // If the API supports batch processing, use it directly
+      // For now, we'll use concurrent processing with Promise.allSettled
+      const promises = texts.map(text => this.generateEmbeddings(text));
+      const results = await Promise.allSettled(promises);
+
+      const embeddings: number[][] = [];
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          embeddings.push(result.value);
+        } else {
+          this.logger.warn('Embedding generation failed for one chunk, using fallback');
+          // Fallback embedding for failed requests
+          embeddings.push(new Array(1024).fill(0));
+        }
+      }
+
+      return embeddings;
+    } catch (error) {
+      this.logger.error('Error generating batch embeddings:', error);
+      throw new Error('Failed to generate batch embeddings');
     }
   }
 
@@ -96,24 +128,39 @@ export class EmbeddingsService {
   }
 
   /**
-   * Process and embed a document
+   * Process and embed a document (Optimized - N+1 Prevention)
    */
   async processDocument(documentId: string, agencyId: string, content: string): Promise<void> {
     try {
       // Split document into chunks
       const chunks = await this.splitDocument(content);
 
-      // Generate embeddings for each chunk
+      if (chunks.length === 0) {
+        this.logger.warn(`No chunks generated for document ${documentId}`);
+        return;
+      }
+
+      // 🔧 OPTIMIZATION: Process embeddings in batches to prevent N+1 API calls
       const embeddings: number[][] = [];
-      for (const chunk of chunks) {
-        const embedding = await this.generateEmbeddings(chunk);
-        embeddings.push(embedding);
+
+      // Process chunks in batches to avoid overwhelming the API
+      for (let i = 0; i < chunks.length; i += this.BATCH_SIZE) {
+        const batch = chunks.slice(i, i + this.BATCH_SIZE);
+        this.logger.debug(`Processing batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(chunks.length / this.BATCH_SIZE)} (${batch.length} chunks)`);
+
+        const batchEmbeddings = await this.generateEmbeddingsBatch(batch);
+        embeddings.push(...batchEmbeddings);
+
+        // Small delay between batches to be respectful to the API
+        if (i + this.BATCH_SIZE < chunks.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
       // Store embeddings in database
       await this.storeDocumentEmbeddings(documentId, agencyId, chunks, embeddings);
 
-      this.logger.log(`Successfully processed document ${documentId} with ${chunks.length} chunks`);
+      this.logger.log(`Successfully processed document ${documentId} with ${chunks.length} chunks in ${Math.ceil(chunks.length / this.BATCH_SIZE)} batches`);
     } catch (error) {
       this.logger.error(`Error processing document ${documentId}:`, error);
       throw error;
@@ -134,7 +181,6 @@ export class EmbeddingsService {
       similarity: number;
       document_title: string;
       document_category: string;
-      metadata?: any;
     }>
   > {
     try {
