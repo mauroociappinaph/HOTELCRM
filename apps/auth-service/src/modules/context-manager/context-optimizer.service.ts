@@ -94,7 +94,7 @@ export class ContextOptimizerService {
   async optimizeContext(
     chunks: ContextChunk[],
     targetTokens: number,
-    strategies: Partial<OptimizationStrategy>[] = [],
+    strategies: Partial<OptimizationStrategy>[] = []
   ): Promise<OptimizedContext> {
     const startTime = Date.now();
     const originalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
@@ -102,13 +102,56 @@ export class ContextOptimizerService {
     // Merge custom strategies with defaults
     const activeStrategies = this.mergeStrategies(strategies);
 
+    // Apply strategies in priority order
+    const { optimizedChunks, appliedStrategies, totalChunksRemoved } = await this.applyStrategies(
+      chunks,
+      activeStrategies,
+      targetTokens
+    );
+
+    // Final token count check and trimming
+    const finalChunks = await this.ensureTokenLimit(optimizedChunks, targetTokens);
+
+    const finalTokensCount = finalChunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
+    const compressionRatio = originalTokens > 0 ? finalTokensCount / originalTokens : 1;
+
+    return {
+      chunks: finalChunks,
+      totalTokens: finalTokensCount,
+      compressionRatio,
+      relevanceScore: this.calculateOverallRelevance(finalChunks),
+      assemblyStrategy: 'optimized-context',
+      metadata: {
+        assemblyTime: Date.now() - startTime,
+        strategiesUsed: appliedStrategies,
+        pruningStats: {
+          originalChunks: chunks.length,
+          prunedChunks: chunks.length - finalChunks.length,
+          redundancyRemoved: totalChunksRemoved,
+        },
+      },
+    };
+  }
+
+  /**
+   * Apply strategies sequentially
+   */
+  private async applyStrategies(
+    chunks: ContextChunk[],
+    strategies: OptimizationStrategy[],
+    targetTokens: number
+  ): Promise<{
+    optimizedChunks: ContextChunk[];
+    appliedStrategies: string[];
+    totalChunksRemoved: number;
+    totalChunksCompressed: number;
+  }> {
     let optimizedChunks = [...chunks];
     const appliedStrategies: string[] = [];
     let totalChunksRemoved = 0;
     let totalChunksCompressed = 0;
 
-    // Apply strategies in priority order
-    for (const strategy of activeStrategies.filter((s) => s.isEnabled)) {
+    for (const strategy of strategies.filter(s => s.isEnabled)) {
       try {
         const result = await this.applyStrategy(strategy, optimizedChunks, targetTokens);
         optimizedChunks = result.chunks;
@@ -120,7 +163,7 @@ export class ContextOptimizerService {
         }
 
         this.logger.debug(
-          `Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`,
+          `Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`
         );
       } catch (error) {
         this.logger.warn(`Strategy ${strategy.name} failed:`, error);
@@ -128,31 +171,26 @@ export class ContextOptimizerService {
       }
     }
 
-    // Final token count check and trimming
-    const finalTokens = optimizedChunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
-    if (finalTokens > targetTokens) {
-      optimizedChunks = await this.trimToTokenLimit(optimizedChunks, targetTokens);
-    }
-
-    const finalTokensCount = optimizedChunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
-    const compressionRatio = originalTokens > 0 ? finalTokensCount / originalTokens : 1;
-
     return {
-      chunks: optimizedChunks,
-      totalTokens: finalTokensCount,
-      compressionRatio,
-      relevanceScore: this.calculateOverallRelevance(optimizedChunks),
-      assemblyStrategy: 'optimized-context',
-      metadata: {
-        assemblyTime: Date.now() - startTime,
-        strategiesUsed: appliedStrategies,
-        pruningStats: {
-          originalChunks: chunks.length,
-          prunedChunks: chunks.length - optimizedChunks.length,
-          redundancyRemoved: totalChunksRemoved,
-        },
-      },
+      optimizedChunks,
+      appliedStrategies,
+      totalChunksRemoved,
+      totalChunksCompressed,
     };
+  }
+
+  /**
+   * Ensure chunks fit within token limit
+   */
+  private async ensureTokenLimit(
+    chunks: ContextChunk[],
+    targetTokens: number
+  ): Promise<ContextChunk[]> {
+    const currentTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
+    if (currentTokens > targetTokens) {
+      return this.trimToTokenLimit(chunks, targetTokens);
+    }
+    return chunks;
   }
 
   /**
