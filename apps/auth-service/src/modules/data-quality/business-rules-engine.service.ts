@@ -66,7 +66,7 @@ export class BusinessRulesEngineService {
     // Remove from category index
     const categoryRules = this.rulesByCategory.get(rule.category);
     if (categoryRules) {
-      const index = categoryRules.findIndex(r => r.id === ruleId);
+      const index = categoryRules.findIndex((r) => r.id === ruleId);
       if (index > -1) {
         categoryRules.splice(index, 1);
       }
@@ -83,7 +83,7 @@ export class BusinessRulesEngineService {
     record: any,
     recordId: string,
     categories?: string[],
-    context?: any
+    context?: any,
   ): Promise<BusinessRulesValidationResult> {
     const startTime = Date.now();
     const ruleResults: RuleValidationResult[] = [];
@@ -94,13 +94,11 @@ export class BusinessRulesEngineService {
 
     // Filter by categories if specified
     if (categories && categories.length > 0) {
-      rulesToExecute = rulesToExecute.filter(rule =>
-        categories.includes(rule.category)
-      );
+      rulesToExecute = rulesToExecute.filter((rule) => categories.includes(rule.category));
     }
 
     // Filter only enabled rules
-    rulesToExecute = rulesToExecute.filter(rule => rule.enabled);
+    rulesToExecute = rulesToExecute.filter((rule) => rule.enabled);
 
     // Sort by priority (critical first)
     const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -165,12 +163,12 @@ export class BusinessRulesEngineService {
     records: Array<{ record: any; recordId: string }>,
     categories?: string[],
     context?: any,
-    parallelExecution: boolean = true
+    parallelExecution: boolean = true,
   ): Promise<BusinessRulesValidationResult[]> {
     if (parallelExecution) {
       // Execute in parallel for better performance
       const promises = records.map(({ record, recordId }) =>
-        this.validateRecord(record, recordId, categories, context)
+        this.validateRecord(record, recordId, categories, context),
       );
       return Promise.all(promises);
     } else {
@@ -228,7 +226,7 @@ export class BusinessRulesEngineService {
     byPriority: Record<string, number>;
   } {
     const allRules = Array.from(this.rules.values());
-    const enabled = allRules.filter(r => r.enabled).length;
+    const enabled = allRules.filter((r) => r.enabled).length;
     const disabled = allRules.length - enabled;
 
     const byCategory: Record<string, { total: number; enabled: number; disabled: number }> = {};
@@ -368,7 +366,7 @@ export class BusinessRulesEngineService {
         const eventTime = new Date(record.eventTime);
         const now = new Date();
         // Allow 5 minutes grace period for clock skew
-        return eventTime.getTime() <= (now.getTime() + 5 * 60 * 1000);
+        return eventTime.getTime() <= now.getTime() + 5 * 60 * 1000;
       },
       errorMessage: 'Event time cannot be in the future',
       errorCode: 'EVENT_TIME_FUTURE',

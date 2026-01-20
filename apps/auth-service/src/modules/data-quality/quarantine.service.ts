@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 export interface QuarantinedRecord {
@@ -144,21 +145,26 @@ export class QuarantineService {
 
       const { data, error } = await client
         .from(this.quarantineTable)
-        .insert([{
-          record_id: recordToStore.recordId,
-          gate_id: recordToStore.gateId,
-          record: recordToStore.record,
-          rejection_reason: recordToStore.rejectionReason,
-          validation_errors: recordToStore.validationErrors,
-          quarantined_at: recordToStore.quarantinedAt.toISOString(),
-          priority: recordToStore.priority,
-          context: recordToStore.context || {},
-        }])
+        .insert([
+          {
+            record_id: recordToStore.recordId,
+            gate_id: recordToStore.gateId,
+            record: recordToStore.record,
+            rejection_reason: recordToStore.rejectionReason,
+            validation_errors: recordToStore.validationErrors,
+            quarantined_at: recordToStore.quarantinedAt.toISOString(),
+            priority: recordToStore.priority,
+            context: recordToStore.context || {},
+          },
+        ])
         .select('id')
         .single();
 
       if (error) {
-        this.logger.warn(`Failed to store quarantined record ${recordToStore.recordId}, using fallback:`, error);
+        this.logger.warn(
+          `Failed to store quarantined record ${recordToStore.recordId}, using fallback:`,
+          error,
+        );
         // Fallback: log to console for demo purposes
         this.logger.error('🚨 RECORD QUARANTINED (Fallback Storage):', {
           recordId: recordToStore.recordId,
@@ -169,9 +175,10 @@ export class QuarantineService {
         return `fallback-${Date.now()}-${recordToStore.recordId}`;
       }
 
-      this.logger.warn(`🚨 Record quarantined: ${recordToStore.recordId} (${recordToStore.priority} priority)`);
+      this.logger.warn(
+        `🚨 Record quarantined: ${recordToStore.recordId} (${recordToStore.priority} priority)`,
+      );
       return data.id;
-
     } catch (error) {
       this.logger.error(`Failed to quarantine record ${quarantinedRecord.recordId}:`, error);
       throw error;
@@ -191,7 +198,10 @@ export class QuarantineService {
   }): Promise<QuarantinedRecord[]> {
     try {
       const client = this.supabaseService.getClient();
-      let query = client.from(this.quarantineTable).select('*').order('quarantined_at', { ascending: false });
+      let query = client
+        .from(this.quarantineTable)
+        .select('*')
+        .order('quarantined_at', { ascending: false });
 
       if (filters?.gateId) {
         query = query.eq('gate_id', filters.gateId);
@@ -218,7 +228,7 @@ export class QuarantineService {
       }
 
       if (filters?.offset) {
-        query = query.range(filters.offset, (filters.offset + (filters.limit || 50)) - 1);
+        query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
       }
 
       const { data, error } = await query;
@@ -228,7 +238,7 @@ export class QuarantineService {
         return [];
       }
 
-      return data.map(row => ({
+      return data.map((row) => ({
         id: row.id,
         recordId: row.record_id,
         gateId: row.gate_id,
@@ -244,7 +254,6 @@ export class QuarantineService {
         priority: row.priority || 'medium',
         context: row.context,
       }));
-
     } catch (error) {
       this.logger.error('Failed to get quarantined records:', error);
       return [];
@@ -259,7 +268,7 @@ export class QuarantineService {
     resolution: 'approved' | 'rejected' | 'fixed',
     reviewedBy: string,
     notes?: string,
-    fixedRecord?: any
+    fixedRecord?: any,
   ): Promise<boolean> {
     try {
       const client = this.supabaseService.getClient();
@@ -287,7 +296,6 @@ export class QuarantineService {
 
       this.logger.log(`✅ Quarantined record ${recordId} resolved as: ${resolution}`);
       return true;
-
     } catch (error) {
       this.logger.error(`Failed to review quarantined record ${recordId}:`, error);
       return false;
@@ -319,7 +327,6 @@ export class QuarantineService {
       const approvedCount = data?.length || 0;
       this.logger.log(`✅ Bulk approved ${approvedCount} quarantined records`);
       return approvedCount;
-
     } catch (error) {
       this.logger.error('Failed to bulk approve quarantined records:', error);
       return 0;
@@ -384,14 +391,12 @@ export class QuarantineService {
           if (stats.averageResolutionTime === 0) {
             stats.averageResolutionTime = resolutionTime;
           } else {
-            stats.averageResolutionTime =
-              (stats.averageResolutionTime + resolutionTime) / 2;
+            stats.averageResolutionTime = (stats.averageResolutionTime + resolutionTime) / 2;
           }
         }
       }
 
       return stats;
-
     } catch (error) {
       this.logger.error('Failed to get quarantine statistics:', error);
       return this.getEmptyStats();
@@ -422,7 +427,6 @@ export class QuarantineService {
       const deletedCount = data?.length || 0;
       this.logger.log(`🧹 Cleaned up ${deletedCount} old resolved quarantine records`);
       return deletedCount;
-
     } catch (error) {
       this.logger.error('Failed to cleanup quarantine records:', error);
       return 0;
@@ -432,16 +436,22 @@ export class QuarantineService {
   /**
    * Calculate priority based on rejection reason and data
    */
-  private calculatePriority(record: Omit<QuarantinedRecord, 'id'>): 'low' | 'medium' | 'high' | 'critical' {
+  private calculatePriority(
+    record: Omit<QuarantinedRecord, 'id'>,
+  ): 'low' | 'medium' | 'high' | 'critical' {
     // Critical: Payment data with negative amounts (financial risk)
-    if (record.gateId === 'payments-gate' &&
-        record.rejectionReason.includes('PAYMENT_AMOUNT_NEGATIVE')) {
+    if (
+      record.gateId === 'payments-gate' &&
+      record.rejectionReason.includes('PAYMENT_AMOUNT_NEGATIVE')
+    ) {
       return 'critical';
     }
 
     // High: Booking data with invalid dates (business impact)
-    if (record.gateId === 'bookings-gate' &&
-        record.rejectionReason.includes('BOOKING_DATES_INVALID')) {
+    if (
+      record.gateId === 'bookings-gate' &&
+      record.rejectionReason.includes('BOOKING_DATES_INVALID')
+    ) {
       return 'high';
     }
 
@@ -490,14 +500,19 @@ export class QuarantineService {
   /**
    * Search quarantined records
    */
-  async searchQuarantinedRecords(searchTerm: string, limit: number = 20): Promise<QuarantinedRecord[]> {
+  async searchQuarantinedRecords(
+    searchTerm: string,
+    limit: number = 20,
+  ): Promise<QuarantinedRecord[]> {
     try {
       const client = this.supabaseService.getClient();
 
       const { data, error } = await client
         .from(this.quarantineTable)
         .select('*')
-        .or(`record_id.ilike.%${searchTerm}%,rejection_reason.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`)
+        .or(
+          `record_id.ilike.%${searchTerm}%,rejection_reason.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`,
+        )
         .order('quarantined_at', { ascending: false })
         .limit(limit);
 
@@ -506,7 +521,7 @@ export class QuarantineService {
         return [];
       }
 
-      return data.map(row => ({
+      return data.map((row) => ({
         id: row.id,
         recordId: row.record_id,
         gateId: row.gate_id,
@@ -522,7 +537,6 @@ export class QuarantineService {
         priority: row.priority || 'medium',
         context: row.context,
       }));
-
     } catch (error) {
       this.logger.error('Failed to search quarantined records:', error);
       return [];

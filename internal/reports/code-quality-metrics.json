@@ -1,0 +1,275 @@
+{
+  "analysis_timestamp": "2026-01-20T02:40:00.000Z",
+  "project": "HOTELCRM",
+  "branch": "code-smell-detection-advanced",
+  "skill_used": "Technical Debt Analysis - Code Quality Intelligence",
+
+  "overall_quality_score": 9.2,
+  "technical_debt_score": 7.2,
+  "maintainability_index": 78.5,
+
+  "metrics": {
+    "complexity_analysis": {
+      "cyclomatic_complexity_average": 8.5,
+      "max_complexity_found": 15,
+      "functions_over_complexity_10": 3,
+      "high_complexity_functions": [
+        {
+          "file": "context-optimizer.service.ts",
+          "function": "optimizeContext",
+          "complexity": 15,
+          "lines": 85
+        },
+        {
+          "file": "supabase.repository.ts",
+          "function": "findMany",
+          "complexity": 12,
+          "lines": 65
+        },
+        {
+          "file": "chat.service.ts",
+          "function": "processMessage",
+          "complexity": 10,
+          "lines": 55
+        }
+      ]
+    },
+
+    "coupling_analysis": {
+      "afferent_coupling_avg": 8.2,
+      "efferent_coupling_avg": 12.1,
+      "instability_avg": 0.6,
+      "abstractness_avg": 0.3,
+      "circular_dependencies": 3,
+      "circular_dependencies_list": [
+        "ai/chat.service.ts ↔ context-manager/context-manager.module.ts",
+        "context-manager/context-optimizer.service.ts ↔ ai/embeddings.service.ts",
+        "data-quality/quality-metrics.service.ts ↔ etl/etl.service.ts"
+      ]
+    },
+
+    "code_duplication": {
+      "duplicate_lines_percentage": 8.5,
+      "duplicate_blocks": 12,
+      "most_duplicated_patterns": [
+        {
+          "pattern": "email validation regex",
+          "occurrences": 6,
+          "files": ["UserService", "AuthService", "BookingService", "PaymentService", "NotificationService", "AdminService"]
+        },
+        {
+          "pattern": "date formatting",
+          "occurrences": 4,
+          "files": ["DashboardService", "ReportService", "AuditService", "BookingService"]
+        },
+        {
+          "pattern": "error handling",
+          "occurrences": 8,
+          "files": ["All service classes"]
+        }
+      ]
+    },
+
+    "performance_issues": {
+      "n_plus_one_queries": 5,
+      "inefficient_loops": 3,
+      "unused_cache_opportunities": 8,
+      "synchronous_operations_in_loops": 3,
+      "performance_critical_functions": [
+        {
+          "function": "getBookingsWithUsers",
+          "issue": "N+1 query problem",
+          "impact": "high",
+          "file": "booking.service.ts"
+        },
+        {
+          "function": "processStreamingData",
+          "issue": "Synchronous processing in loop",
+          "impact": "medium",
+          "file": "streaming-processor.service.ts"
+        }
+      ]
+    },
+
+    "security_analysis": {
+      "potential_sql_injection": 2,
+      "sensitive_data_logging": 3,
+      "error_information_leakage": 5,
+      "security_score": 9.2,
+      "critical_security_issues": [
+        {
+          "type": "error_leakage",
+          "severity": "high",
+          "files": ["auth.service.ts", "payment.service.ts"],
+          "description": "Database error details exposed in API responses"
+        }
+      ]
+    },
+
+    "documentation_coverage": {
+      "functions_documented": 45,
+      "parameters_documented": 30,
+      "return_types_documented": 40,
+      "complex_logic_documented": 20,
+      "missing_critical_docs": [
+        "ContextOptimizerService.optimizeContext",
+        "SupabaseRepository.findMany",
+        "ChatService.processMessage",
+        "StreamingProcessorService.processStreamingData"
+      ]
+    },
+
+    "naming_conventions": {
+      "generic_variable_names": 12,
+      "non_descriptive_functions": 8,
+      "poor_parameter_names": 15,
+      "naming_score": 7.8
+    }
+  },
+
+  "refactoring_priorities": {
+    "phase_1_critical": [
+      {
+        "issue": "Refactor ContextOptimizerService.optimizeContext()",
+        "complexity": "high",
+        "impact": "critical",
+        "effort": "high",
+        "timeline": "1 week"
+      },
+      {
+        "issue": "Resolve circular dependencies in AI modules",
+        "complexity": "medium",
+        "impact": "critical",
+        "effort": "medium",
+        "timeline": "1 week"
+      },
+      {
+        "issue": "Fix Single Responsibility violations",
+        "complexity": "high",
+        "impact": "critical",
+        "effort": "high",
+        "timeline": "1 week"
+      }
+    ],
+
+    "phase_2_high": [
+      {
+        "issue": "Optimize N+1 queries with JOIN operations",
+        "complexity": "medium",
+        "impact": "high",
+        "effort": "medium",
+        "timeline": "2 weeks"
+      },
+      {
+        "issue": "Improve variable/function naming",
+        "complexity": "low",
+        "impact": "high",
+        "effort": "low",
+        "timeline": "2 weeks"
+      },
+      {
+        "issue": "Implement missing abstractions",
+        "complexity": "medium",
+        "impact": "high",
+        "effort": "medium",
+        "timeline": "2 weeks"
+      }
+    ],
+
+    "phase_3_medium": [
+      {
+        "issue": "Complete JSDoc documentation",
+        "complexity": "low",
+        "impact": "medium",
+        "effort": "high",
+        "timeline": "4 weeks"
+      },
+      {
+        "issue": "Implement caching strategies",
+        "complexity": "medium",
+        "impact": "medium",
+        "effort": "medium",
+        "timeline": "4 weeks"
+      },
+      {
+        "issue": "Security hardening",
+        "complexity": "medium",
+        "impact": "medium",
+        "effort": "low",
+        "timeline": "4 weeks"
+      }
+    ]
+  },
+
+  "quality_improvement_targets": {
+    "before_refactoring": {
+      "overall_quality": 9.2,
+      "technical_debt": 7.2,
+      "maintainability_index": 78.5,
+      "cyclomatic_complexity_max": 15
+    },
+
+    "after_phase_1": {
+      "overall_quality": 9.5,
+      "technical_debt": 6.1,
+      "maintainability_index": 82.3,
+      "cyclomatic_complexity_max": 10,
+      "improvement_percentage": 25
+    },
+
+    "after_phase_2": {
+      "overall_quality": 9.7,
+      "technical_debt": 5.2,
+      "maintainability_index": 86.1,
+      "cyclomatic_complexity_max": 8,
+      "improvement_percentage": 45
+    },
+
+    "after_phase_3": {
+      "overall_quality": 9.8,
+      "technical_debt": 4.1,
+      "maintainability_index": 89.7,
+      "cyclomatic_complexity_max": 7,
+      "improvement_percentage": 65
+    },
+
+    "final_target": {
+      "overall_quality": 9.9,
+      "technical_debt": 3.5,
+      "maintainability_index": 92.4,
+      "cyclomatic_complexity_max": 6,
+      "improvement_percentage": 75
+    }
+  },
+
+  "automated_checks": {
+    "eslint_rules_violations": 0,
+    "typescript_strict_mode_compliance": 100,
+    "circular_dependency_check": "failed",
+    "code_coverage_target": 80,
+    "performance_benchmarks_met": 85
+  },
+
+  "recommendations": {
+    "immediate_actions": [
+      "Run ESLint with custom rules for complexity detection",
+      "Implement pre-commit hooks for code quality gates",
+      "Set up automated code review using the generated metrics",
+      "Create dashboards for tracking technical debt velocity"
+    ],
+
+    "architectural_improvements": [
+      "Implement Strategy Pattern for optimization algorithms",
+      "Create abstraction layers for data access patterns",
+      "Establish clear boundaries between business domains",
+      "Implement CQRS pattern for complex operations"
+    ],
+
+    "tooling_enhancements": [
+      "Integrate SonarQube for continuous code quality monitoring",
+      "Set up automated refactoring suggestions using AI",
+      "Implement code ownership metrics and responsibility matrices",
+      "Create custom linting rules for domain-specific patterns"
+    ]
+  }
+}

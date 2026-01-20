@@ -1,13 +1,18 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+
+import {
+  DataQualityGateService,
+  QualityGateResult,
+} from '../data-quality/data-quality-gate.service';
+import { QualityMetricsService } from '../data-quality/quality-metrics.service';
+import { BusinessRulesEngineService } from '../data-quality/business-rules-engine.service';
+
 import { DataIngestionService } from './data-ingestion.service';
 import { EventTimeProcessorService } from './event-time-processor.service';
 import { WatermarkingService } from './watermarking.service';
 import { DeduplicationService } from './deduplication.service';
 import { BatchProcessorService } from './batch-processor.service';
 import { StreamingProcessorService } from './streaming-processor.service';
-import { DataQualityGateService, QualityGateResult } from '../data-quality/data-quality-gate.service';
-import { QualityMetricsService } from '../data-quality/quality-metrics.service';
-import { BusinessRulesEngineService } from '../data-quality/business-rules-engine.service';
 
 export interface EtlPipelineConfig {
   pipelineId: string;
@@ -163,7 +168,6 @@ export class EtlService implements OnModuleInit {
       this.activePipelines.set(config.pipelineId, config);
 
       this.logger.log(`✅ Registered ETL pipeline: ${config.pipelineId}`);
-
     } catch (error) {
       this.logger.error(`❌ Failed to register pipeline ${config.pipelineId}:`, error);
       throw error;
@@ -202,7 +206,6 @@ export class EtlService implements OnModuleInit {
       if (pipeline.enableBatch) {
         await this.startBatchProcessing(jobId, pipeline);
       }
-
     } catch (error) {
       await this.failJob(jobId, error as Error);
     }
@@ -229,7 +232,6 @@ export class EtlService implements OnModuleInit {
       if (queue.length >= pipeline.batchSize || this.shouldProcessImmediately(record)) {
         await this.processBatch(pipelineId);
       }
-
     } catch (error) {
       this.logger.error(`❌ Failed to process record for pipeline ${pipelineId}:`, error);
       throw error;
@@ -262,7 +264,7 @@ export class EtlService implements OnModuleInit {
             gateId,
             record.data, // Validar solo los datos, no el wrapper del record
             record.id,
-            { pipelineId, source: record.source }
+            { pipelineId, source: record.source },
           );
 
           qualityChecks.push(qualityResult);
@@ -270,9 +272,11 @@ export class EtlService implements OnModuleInit {
           if (qualityResult.passed) {
             validRecords.push(record);
           }
-
         } catch (error) {
-          this.logger.warn(`⚠️ Quality gate rejected record ${record.id}:`, error instanceof Error ? error.message : error);
+          this.logger.warn(
+            `⚠️ Quality gate rejected record ${record.id}:`,
+            error instanceof Error ? error.message : error,
+          );
           // Record is automatically quarantined by the quality gate
         }
       }
@@ -280,7 +284,9 @@ export class EtlService implements OnModuleInit {
       // Update quality metrics
       this.qualityMetrics.updateMetricsFromGateResults(qualityChecks);
 
-      this.logger.log(`🛡️ Quality gates processed: ${qualityChecks.filter(c => c.passed).length}/${qualityChecks.length} records passed`);
+      this.logger.log(
+        `🛡️ Quality gates processed: ${qualityChecks.filter((c) => c.passed).length}/${qualityChecks.length} records passed`,
+      );
 
       if (validRecords.length === 0) {
         this.logger.log(`⚠️ No valid records to process for pipeline: ${pipelineId}`);
@@ -295,13 +301,13 @@ export class EtlService implements OnModuleInit {
       const watermarkedRecords = await this.watermarking.applyWatermark(
         pipelineId,
         sortedRecords,
-        pipeline.watermarkDelayMinutes
+        pipeline.watermarkDelayMinutes,
       );
 
       // 🗑️ PASO 4: Deduplicate records
       const deduplicatedRecords = await this.deduplication.deduplicate(
         watermarkedRecords,
-        pipeline.deduplicationWindowMinutes
+        pipeline.deduplicationWindowMinutes,
       );
 
       // 📊 PASO 5: Process through appropriate processor
@@ -310,25 +316,30 @@ export class EtlService implements OnModuleInit {
       }
 
       if (pipeline.enableBatch && deduplicatedRecords.length > 0) {
-        await this.batchProcessor.processBatch(pipelineId, deduplicatedRecords, pipeline.destinationTable);
+        await this.batchProcessor.processBatch(
+          pipelineId,
+          deduplicatedRecords,
+          pipeline.destinationTable,
+        );
       }
 
       // 📈 PASO 6: Update watermark
       if (deduplicatedRecords.length > 0) {
-        const latestEventTime = Math.max(...deduplicatedRecords.map(r => r.eventTime.getTime()));
+        const latestEventTime = Math.max(...deduplicatedRecords.map((r) => r.eventTime.getTime()));
         await this.watermarking.updateWatermark(pipelineId, new Date(latestEventTime));
       }
 
       // 🧹 PASO 7: Clear processed records from queue
       this.processingQueues.set(pipelineId, []);
 
-      this.logger.log(`✅ Successfully processed ${deduplicatedRecords.length}/${validRecords.length} records for pipeline: ${pipelineId}`);
-
+      this.logger.log(
+        `✅ Successfully processed ${deduplicatedRecords.length}/${validRecords.length} records for pipeline: ${pipelineId}`,
+      );
     } catch (error) {
       this.logger.error(`❌ Batch processing failed for pipeline ${pipelineId}:`, error);
 
       // Implement retry logic
-      const job = Array.from(this.activeJobs.values()).find(j => j.pipelineId === pipelineId);
+      const job = Array.from(this.activeJobs.values()).find((j) => j.pipelineId === pipelineId);
       if (job && job.retryCount < pipeline.maxRetries) {
         await this.retryJob(job.id, pipeline);
       } else {
@@ -340,7 +351,10 @@ export class EtlService implements OnModuleInit {
   /**
    * Start streaming processing for a pipeline
    */
-  private async startStreamingProcessing(jobId: string, pipeline: EtlPipelineConfig): Promise<void> {
+  private async startStreamingProcessing(
+    jobId: string,
+    pipeline: EtlPipelineConfig,
+  ): Promise<void> {
     const job = this.activeJobs.get(jobId);
     if (!job) return;
 
@@ -353,7 +367,6 @@ export class EtlService implements OnModuleInit {
       });
 
       this.logger.log(`🌊 Streaming processing started for pipeline: ${pipeline.pipelineId}`);
-
     } catch (error) {
       this.logger.error(`Failed to start streaming for pipeline ${pipeline.pipelineId}:`, error);
       throw error;
@@ -376,9 +389,11 @@ export class EtlService implements OnModuleInit {
       });
 
       this.logger.log(`📦 Batch processing scheduled for pipeline: ${pipeline.pipelineId}`);
-
     } catch (error) {
-      this.logger.error(`Failed to start batch processing for pipeline ${pipeline.pipelineId}:`, error);
+      this.logger.error(
+        `Failed to start batch processing for pipeline ${pipeline.pipelineId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -553,7 +568,9 @@ export class EtlService implements OnModuleInit {
   getPipelineStats(pipelineId: string) {
     const pipeline = this.activePipelines.get(pipelineId);
     const queue = this.processingQueues.get(pipelineId) || [];
-    const activeJobs = Array.from(this.activeJobs.values()).filter(j => j.pipelineId === pipelineId);
+    const activeJobs = Array.from(this.activeJobs.values()).filter(
+      (j) => j.pipelineId === pipelineId,
+    );
 
     return {
       pipeline: pipeline ? { ...pipeline } : null,

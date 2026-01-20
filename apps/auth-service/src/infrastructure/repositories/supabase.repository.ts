@@ -26,6 +26,7 @@ import {
   Document,
   ITransaction,
 } from '@hotel-crm/shared';
+
 import { SupabaseService } from '../supabase/supabase.service';
 
 /**
@@ -48,9 +49,7 @@ function getErrorMessage(error: unknown): string {
  * Base Supabase Repository with common CRUD operations
  */
 @Injectable()
-export abstract class SupabaseRepository<T extends { id: string }>
-  implements IRepository<T> {
-
+export abstract class SupabaseRepository<T extends { id: string }> implements IRepository<T> {
   constructor(
     protected readonly supabaseService: SupabaseService,
     protected readonly tableName: string,
@@ -66,7 +65,8 @@ export abstract class SupabaseRepository<T extends { id: string }>
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') { // Not found
+        if (error.code === 'PGRST116') {
+          // Not found
           return { some: false, value: undefined };
         }
         throw new Error(`Database error: ${getErrorMessage(error)}`);
@@ -80,10 +80,7 @@ export abstract class SupabaseRepository<T extends { id: string }>
 
   async findAll(filter?: Partial<T>): Promise<T[]> {
     try {
-      let query = this.supabaseService
-        .getClient()
-        .from(this.tableName)
-        .select('*');
+      let query = this.supabaseService.getClient().from(this.tableName).select('*');
 
       if (filter) {
         Object.entries(filter).forEach(([key, value]) => {
@@ -99,7 +96,7 @@ export abstract class SupabaseRepository<T extends { id: string }>
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return (data || []) as T[];
+      return (data || []) as unknown as T[];
     } catch (error) {
       throw new Error(`Failed to find all ${this.tableName}: ${getErrorMessage(error)}`);
     }
@@ -147,7 +144,8 @@ export abstract class SupabaseRepository<T extends { id: string }>
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') { // Not found
+        if (error.code === 'PGRST116') {
+          // Not found
           return { some: false, value: undefined };
         }
         throw new Error(`Database error: ${getErrorMessage(error)}`);
@@ -229,14 +227,11 @@ export abstract class SupabaseRepository<T extends { id: string }>
 @Injectable()
 export abstract class SupabaseQueryRepository<T extends { id: string }>
   extends SupabaseRepository<T>
-  implements IQueryRepository<T> {
-
+  implements IQueryRepository<T>
+{
   async findOne(filter: Partial<T>): Promise<Option<T>> {
     try {
-      let query = this.supabaseService
-        .getClient()
-        .from(this.tableName)
-        .select('*');
+      let query = this.supabaseService.getClient().from(this.tableName).select('*');
 
       Object.entries(filter).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -247,7 +242,8 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       const { data, error } = await query.single();
 
       if (error) {
-        if (error.code === 'PGRST116') { // Not found
+        if (error.code === 'PGRST116') {
+          // Not found
           return { some: false, value: undefined };
         }
         throw new Error(`Database error: ${getErrorMessage(error)}`);
@@ -261,10 +257,9 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
   async findMany(filter: Partial<T>, options?: QueryOptions): Promise<T[]> {
     try {
-      let query = this.supabaseService
-        .getClient()
-        .from(this.tableName)
-        .select('*');
+      // 🔧 OPTIMIZATION: Allow custom select fields to prevent over-fetching
+      const selectFields = options?.select || '*';
+      let query = this.supabaseService.getClient().from(this.tableName).select(selectFields);
 
       // Apply filters
       if (filter) {
@@ -287,7 +282,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       }
 
       if (options?.offset) {
-        query = query.range(options.offset, (options.offset + (options.limit || 10)) - 1);
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
       }
 
       const { data, error } = await query;
@@ -345,8 +340,8 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
-        const searchConditions = query.fields.map((field: string) =>
-          `${field}.ilike.%${query.query}%`
+        const searchConditions = query.fields.map(
+          (field: string) => `${field}.ilike.%${query.query}%`,
         );
         // Note: This is a simplified implementation. Real full-text search would be more complex
         dbQuery = dbQuery.or(searchConditions.join(','));
@@ -388,22 +383,22 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 @Injectable()
 export class SupabaseChatRepository
   extends SupabaseQueryRepository<ChatSession>
-  implements IChatRepository {
-
+  implements IChatRepository
+{
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'ai_chat_sessions');
   }
 
   async findByUserId(userId: string): Promise<ChatSession[]> {
     return this.findMany({ userId } as any, {
-      orderBy: [{ field: 'lastActivity', direction: 'desc' }]
+      orderBy: [{ field: 'lastActivity', direction: 'desc' }],
     });
   }
 
   async findActiveSession(userId: string): Promise<Option<ChatSession>> {
     return this.findOne({
       userId,
-      status: 'active'
+      status: 'active',
     } as any);
   }
 
@@ -429,7 +424,6 @@ export class SupabaseChatRepository
         .from(this.tableName)
         .update({ lastActivity: new Date() })
         .eq('id', sessionId);
-
     } catch (error) {
       throw new Error(`Failed to save message: ${getErrorMessage(error)}`);
     }
@@ -437,7 +431,7 @@ export class SupabaseChatRepository
 
   async getConversationHistory(
     sessionId: string,
-    options?: ConversationOptions
+    options?: ConversationOptions,
   ): Promise<ChatMessage[]> {
     try {
       let query = this.supabaseService
@@ -483,36 +477,34 @@ export class SupabaseChatRepository
 @Injectable()
 export class SupabaseBookingRepository
   extends SupabaseQueryRepository<Booking>
-  implements IBookingRepository {
-
+  implements IBookingRepository
+{
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'bookings');
   }
 
   async findByUserId(userId: string): Promise<Booking[]> {
     return this.findMany({ userId } as any, {
-      orderBy: [{ field: 'createdAt', direction: 'desc' }]
+      orderBy: [{ field: 'createdAt', direction: 'desc' }],
     });
   }
 
   async findByRoomId(roomId: string): Promise<Booking[]> {
     return this.findMany({ roomId } as any, {
-      orderBy: [{ field: 'checkInDate', direction: 'asc' }]
+      orderBy: [{ field: 'checkInDate', direction: 'asc' }],
     });
   }
 
-  async findConflictingBookings(
-    roomId: string,
-    checkIn: Date,
-    checkOut: Date
-  ): Promise<Booking[]> {
+  async findConflictingBookings(roomId: string, checkIn: Date, checkOut: Date): Promise<Booking[]> {
     try {
       const { data, error } = await this.supabaseService
         .getClient()
         .from(this.tableName)
         .select('*')
         .eq('roomId', roomId)
-        .or(`and(checkInDate.lt.${checkOut.toISOString()},checkOutDate.gt.${checkIn.toISOString()})`);
+        .or(
+          `and(checkInDate.lt.${checkOut.toISOString()},checkOutDate.gt.${checkIn.toISOString()})`,
+        );
 
       if (error) {
         throw new Error(`Database error: ${getErrorMessage(error)}`);
@@ -535,8 +527,8 @@ export class SupabaseBookingRepository
 @Injectable()
 export class SupabaseUserRepository
   extends SupabaseQueryRepository<User>
-  implements IUserRepository {
-
+  implements IUserRepository
+{
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'users');
   }
@@ -547,7 +539,7 @@ export class SupabaseUserRepository
 
   async findByAgencyId(agencyId: string): Promise<User[]> {
     return this.findMany({ agencyId } as any, {
-      orderBy: [{ field: 'createdAt', direction: 'desc' }]
+      orderBy: [{ field: 'createdAt', direction: 'desc' }],
     });
   }
 
@@ -562,15 +554,15 @@ export class SupabaseUserRepository
 @Injectable()
 export class SupabaseDocumentRepository
   extends SupabaseQueryRepository<Document>
-  implements IDocumentRepository {
-
+  implements IDocumentRepository
+{
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'ai_documents');
   }
 
   async findByCategory(category: string): Promise<Document[]> {
     return this.findMany({ category } as any, {
-      orderBy: [{ field: 'createdAt', direction: 'desc' }]
+      orderBy: [{ field: 'createdAt', direction: 'desc' }],
     });
   }
 
@@ -578,7 +570,7 @@ export class SupabaseDocumentRepository
     return this.search({
       query,
       fields: ['title', 'content'],
-    }).then(result => result.items);
+    }).then((result) => result.items);
   }
 
   async findSimilar(documentId: string, limit = 10): Promise<Document[]> {
@@ -598,7 +590,7 @@ export class SupabaseDocumentRepository
 
       return this.findMany({ category: targetDoc.category } as any, {
         limit,
-        orderBy: [{ field: 'createdAt', direction: 'desc' }]
+        orderBy: [{ field: 'createdAt', direction: 'desc' }],
       });
     } catch (error) {
       throw new Error(`Failed to find similar documents: ${getErrorMessage(error)}`);

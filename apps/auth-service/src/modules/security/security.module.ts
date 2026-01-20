@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+
+import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
+
 import { SecurityController } from './security.controller';
 import { SecurityService } from './security.service';
-import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
 
 @Module({
   imports: [SupabaseModule],

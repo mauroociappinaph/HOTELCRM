@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { EtlRecord } from './etl.service';
 
 @Injectable()
@@ -18,7 +19,7 @@ export class EventTimeProcessorService {
   groupByTimeWindow(records: EtlRecord[], windowSizeMs: number): Map<number, EtlRecord[]> {
     const groups = new Map<number, EtlRecord[]>();
 
-    records.forEach(record => {
+    records.forEach((record) => {
       const windowStart = Math.floor(record.eventTime.getTime() / windowSizeMs) * windowSizeMs;
       const group = groups.get(windowStart) || [];
       group.push(record);
@@ -32,7 +33,7 @@ export class EventTimeProcessorService {
    * Identify late-arriving records based on watermark
    */
   identifyLateRecords(records: EtlRecord[], watermark: Date): EtlRecord[] {
-    return records.filter(record => record.eventTime < watermark);
+    return records.filter((record) => record.eventTime < watermark);
   }
 
   /**
@@ -43,7 +44,7 @@ export class EventTimeProcessorService {
       return { min: null, max: null, avg: null, count: 0 };
     }
 
-    const times = records.map(r => r.eventTime.getTime());
+    const times = records.map((r) => r.eventTime.getTime());
     const min = new Date(Math.min(...times));
     const max = new Date(Math.max(...times));
     const avg = new Date(times.reduce((sum, time) => sum + time, 0) / times.length);

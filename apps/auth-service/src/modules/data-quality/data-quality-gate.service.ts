@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SchemaValidatorService, ValidationResult } from './schema-validator.service';
-import { BusinessRulesEngineService, BusinessRulesValidationResult } from './business-rules-engine.service';
+import {
+  BusinessRulesEngineService,
+  BusinessRulesValidationResult,
+} from './business-rules-engine.service';
 import { QuarantineService } from './quarantine.service';
 
 export interface QualityGateConfig {
@@ -49,7 +53,7 @@ export class DataQualityException extends Error {
     public readonly gateId: string,
     public readonly recordId: string,
     public readonly rejectionReason: string,
-    public readonly validationErrors: any[]
+    public readonly validationErrors: any[],
   ) {
     super(message);
     this.name = 'DataQualityException';
@@ -96,7 +100,7 @@ export class DataQualityGateService {
     gateId: string,
     record: any,
     recordId: string,
-    context?: any
+    context?: any,
   ): Promise<QualityGateResult> {
     const startTime = Date.now();
     const gate = this.gates.get(gateId);
@@ -129,7 +133,7 @@ export class DataQualityGateService {
           record,
           recordId,
           gate.ruleCategories,
-          context
+          context,
         );
 
         if (!checks.businessRulesValidation.overallResult) {
@@ -174,13 +178,12 @@ export class DataQualityGateService {
           gateId,
           recordId,
           rejectedReason,
-          this.collectValidationErrors(checks)
+          this.collectValidationErrors(checks),
         );
       }
 
       // Update stats for passed records
       this.updateGateStats(gateId, true, undefined, false);
-
     } catch (error) {
       if (error instanceof DataQualityException) {
         throw error; // Re-throw quality exceptions
@@ -211,7 +214,7 @@ export class DataQualityGateService {
         gateId,
         recordId,
         rejectedReason,
-        [{ error: error instanceof Error ? error.message : String(error) }]
+        [{ error: error instanceof Error ? error.message : String(error) }],
       );
     }
 
@@ -235,11 +238,11 @@ export class DataQualityGateService {
     gateId: string,
     records: Array<{ record: any; recordId: string }>,
     context?: any,
-    parallelValidation: boolean = true
+    parallelValidation: boolean = true,
   ): Promise<QualityGateResult[]> {
     if (parallelValidation) {
       const promises = records.map(({ record, recordId }) =>
-        this.validateRecord(gateId, record, recordId, context)
+        this.validateRecord(gateId, record, recordId, context),
       );
       return Promise.all(promises);
     } else {
@@ -408,16 +411,17 @@ export class DataQualityGateService {
     // Schema validation critical errors
     if (checks.schemaValidation && !checks.schemaValidation.isValid) {
       const criticalCodes = ['MISSING_REQUIRED_FIELD', 'INVALID_TYPE', 'INVALID_UUID_FORMAT'];
-      return checks.schemaValidation.errors.some(error =>
-        criticalCodes.includes(error.code)
-      );
+      return checks.schemaValidation.errors.some((error) => criticalCodes.includes(error.code));
     }
 
     // Business rules critical failures
     if (checks.businessRulesValidation && !checks.businessRulesValidation.overallResult) {
-      return checks.businessRulesValidation.failedRules.some(rule =>
-        rule.ruleId.includes('critical') ||
-        ['PAYMENT_AMOUNT_NEGATIVE', 'BOOKING_DATES_INVALID', 'EVENT_TIME_FUTURE'].includes(rule.errorCode || '')
+      return checks.businessRulesValidation.failedRules.some(
+        (rule) =>
+          rule.ruleId.includes('critical') ||
+          ['PAYMENT_AMOUNT_NEGATIVE', 'BOOKING_DATES_INVALID', 'EVENT_TIME_FUTURE'].includes(
+            rule.errorCode || '',
+          ),
       );
     }
 
@@ -435,11 +439,13 @@ export class DataQualityGateService {
     }
 
     if (checks.businessRulesValidation) {
-      errors.push(...checks.businessRulesValidation.failedRules.map(rule => ({
-        ruleId: rule.ruleId,
-        errorCode: rule.errorCode,
-        errorMessage: rule.errorMessage,
-      })));
+      errors.push(
+        ...checks.businessRulesValidation.failedRules.map((rule) => ({
+          ruleId: rule.ruleId,
+          errorCode: rule.errorCode,
+          errorMessage: rule.errorMessage,
+        })),
+      );
     }
 
     return errors;
@@ -452,7 +458,7 @@ export class DataQualityGateService {
     gateId: string,
     passed: boolean,
     rejectionReason?: string,
-    quarantined?: boolean
+    quarantined?: boolean,
   ): void {
     const stats = this.stats.get(gateId);
     if (!stats) return;
@@ -464,7 +470,8 @@ export class DataQualityGateService {
     } else {
       stats.totalRejected++;
       if (rejectionReason) {
-        stats.rejectionReasons[rejectionReason] = (stats.rejectionReasons[rejectionReason] || 0) + 1;
+        stats.rejectionReasons[rejectionReason] =
+          (stats.rejectionReasons[rejectionReason] || 0) + 1;
       }
       if (quarantined) {
         stats.totalQuarantined++;
@@ -485,7 +492,7 @@ export class DataQualityGateService {
     gateStats: Record<string, QualityGateStats>;
   } {
     const allStats = Array.from(this.stats.values());
-    const activeGates = Array.from(this.gates.values()).filter(g => g.enabled).length;
+    const activeGates = Array.from(this.gates.values()).filter((g) => g.enabled).length;
 
     return {
       totalGates: this.gates.size,

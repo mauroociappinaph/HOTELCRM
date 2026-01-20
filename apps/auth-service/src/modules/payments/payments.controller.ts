@@ -9,8 +9,10 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
-import { PaymentsService } from './payments.service';
+
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+
+import { PaymentsService } from './payments.service';
 
 @Controller('payments')
 @UseGuards(SupabaseAuthGuard)
@@ -102,10 +104,7 @@ export class PaymentsController {
    * Apply coupon to subscription
    */
   @Post('coupon')
-  async applyCoupon(
-    @Request() req: any,
-    @Body() body: { couponCode: string },
-  ) {
+  async applyCoupon(@Request() req: any, @Body() body: { couponCode: string }) {
     const userId = req.user.id;
     const agencyId = req.user.user_metadata?.agency_id || 'default';
 

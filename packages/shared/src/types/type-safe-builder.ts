@@ -3,7 +3,13 @@
  * Using TypeScript Pro advanced patterns with conditional types and generics
  */
 
-import { Builder, BuilderState, DeepPartial, RequiredKeys, OptionalKeys } from './advanced-utils.types';
+import {
+  Builder,
+  BuilderState,
+  DeepPartial,
+  RequiredKeys,
+  OptionalKeys,
+} from './advanced-utils.types';
 
 /**
  * Generic Builder class with type safety
@@ -13,7 +19,7 @@ export class TypeSafeBuilder<T extends Record<string, any>, Required extends key
   private requiredFields: Set<keyof T> = new Set();
 
   constructor(required: Required[] = []) {
-    required.forEach(field => this.requiredFields.add(field));
+    required.forEach((field) => this.requiredFields.add(field));
   }
 
   /**
@@ -117,7 +123,7 @@ export class FluentBuilder<T extends Record<string, any>, Required extends keyof
    * Create fluent methods for each property
    */
   static create<T extends Record<string, any>, Required extends keyof T = never>(
-    required: Required[] = []
+    required: Required[] = [],
   ): FluentBuilder<T, Required> & {
     [K in keyof T]: (value: T[K]) => FluentBuilder<T, Required>;
   } {
@@ -188,7 +194,15 @@ export interface BookingData {
 
 export class BookingBuilder extends TypeSafeBuilder<
   BookingData,
-  'guestName' | 'email' | 'roomType' | 'checkInDate' | 'checkOutDate' | 'guestCount' | 'totalAmount' | 'currency' | 'agencyId'
+  | 'guestName'
+  | 'email'
+  | 'roomType'
+  | 'checkInDate'
+  | 'checkOutDate'
+  | 'guestCount'
+  | 'totalAmount'
+  | 'currency'
+  | 'agencyId'
 > {
   constructor() {
     super([
@@ -372,7 +386,7 @@ export class RepositoryBuilder<T extends { id: string }> {
    * Execute query on data
    */
   execute(data: T[]): T[] {
-    let result = data.filter(item => this.filters.every(filter => filter(item)));
+    let result = data.filter((item) => this.filters.every((filter) => filter(item)));
 
     // Apply sorting
     for (const sorter of this.sorters) {
@@ -412,6 +426,9 @@ export function createRepositoryBuilder<T extends { id: string }>(): RepositoryB
   return new RepositoryBuilder<T>();
 }
 
-export function createTypeSafeFactory<T extends Record<string, any>, TConfig = any>(): TypeSafeFactory<T, TConfig> {
+export function createTypeSafeFactory<
+  T extends Record<string, any>,
+  TConfig = any,
+>(): TypeSafeFactory<T, TConfig> {
   return new TypeSafeFactory<T, TConfig>();
 }

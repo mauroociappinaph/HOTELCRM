@@ -1,10 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
-import { EmbeddingsService } from './embeddings.service';
-import { ContextAssemblerService, QueryContext, ContextChunk, OptimizedContext } from '../context-manager/context-assembler.service';
-import { MemoryManagerService, EpisodicMemory, SemanticMemory, ProceduralMemory } from '../context-manager/memory-manager.service';
-import { ContextOptimizerService } from '../context-manager/context-optimizer.service';
 import { OpenRouter } from '@openrouter/sdk';
+
+import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+import {
+  ContextAssemblerService,
+  QueryContext,
+  ContextChunk,
+  OptimizedContext,
+} from '../context-manager/context-assembler.service';
+import {
+  MemoryManagerService,
+  EpisodicMemory,
+  SemanticMemory,
+  ProceduralMemory,
+} from '../context-manager/memory-manager.service';
+import { ContextOptimizerService } from '../context-manager/context-optimizer.service';
+
+import { EmbeddingsService } from './embeddings.service';
 
 @Injectable()
 export class ChatService {
@@ -100,7 +112,7 @@ export class ChatService {
       );
 
       // 🧠 PHASE 3: Convert to ContextChunks for advanced processing
-      const contextChunks: ContextChunk[] = rawContextResults.map(result => ({
+      const contextChunks: ContextChunk[] = rawContextResults.map((result) => ({
         id: result.document_id,
         content: result.chunk_content,
         source: result.document_category || 'unknown',
@@ -160,10 +172,16 @@ export class ChatService {
         if ('facts' in mem.content && 'lastUpdated' in mem.content && 'confidence' in mem.content) {
           memoryChunks.push({
             id: `semantic-${mem.content.id}`,
-            content: Array.isArray(mem.content.facts) ? mem.content.facts.join('. ') : String(mem.content.facts),
+            content: Array.isArray(mem.content.facts)
+              ? mem.content.facts.join('. ')
+              : String(mem.content.facts),
             source: 'semantic_memory',
             relevanceScore: mem.relevanceScore,
-            tokenCount: this.estimateTokenCount(Array.isArray(mem.content.facts) ? mem.content.facts.join('. ') : String(mem.content.facts)),
+            tokenCount: this.estimateTokenCount(
+              Array.isArray(mem.content.facts)
+                ? mem.content.facts.join('. ')
+                : String(mem.content.facts),
+            ),
             timestamp: new Date(mem.content.lastUpdated),
             metadata: { type: 'semantic', confidence: mem.content.confidence },
           });
@@ -172,13 +190,22 @@ export class ChatService {
 
       // Add procedural memories
       for (const mem of proceduralMemories) {
-        if ('pattern' in mem.content && 'steps' in mem.content && 'lastUsed' in mem.content && 'successRate' in mem.content) {
+        if (
+          'pattern' in mem.content &&
+          'steps' in mem.content &&
+          'lastUsed' in mem.content &&
+          'successRate' in mem.content
+        ) {
           memoryChunks.push({
             id: `procedural-${mem.content.id}`,
             content: `${mem.content.pattern}: ${Array.isArray(mem.content.steps) ? mem.content.steps.join(' -> ') : String(mem.content.steps)}`,
             source: 'procedural_memory',
             relevanceScore: mem.relevanceScore,
-            tokenCount: this.estimateTokenCount(Array.isArray(mem.content.steps) ? mem.content.steps.join(' ') : String(mem.content.steps)),
+            tokenCount: this.estimateTokenCount(
+              Array.isArray(mem.content.steps)
+                ? mem.content.steps.join(' ')
+                : String(mem.content.steps),
+            ),
             timestamp: new Date(mem.content.lastUsed),
             metadata: { type: 'procedural', successRate: mem.content.successRate },
           });
@@ -193,7 +220,7 @@ export class ChatService {
         query: message,
         userId,
         sessionId,
-        conversationHistory: conversationHistory.map(h => ({
+        conversationHistory: conversationHistory.map((h) => ({
           role: h.role as 'user' | 'assistant',
           content: h.content,
           timestamp: new Date(h.created_at),
@@ -210,7 +237,7 @@ export class ChatService {
           maxTokens: 6000, // Conservative limit for most models
           targetTokens: 4000,
           minTokens: 1000,
-        }
+        },
       );
 
       // 🧠 PHASE 9: Apply additional optimization if needed
@@ -241,7 +268,8 @@ export class ChatService {
       const estimatedCost = tokensUsed * costPerToken;
 
       // Convert aiResponse to string for storage
-      const aiResponseStr = typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse);
+      const aiResponseStr =
+        typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse);
 
       // 🧠 PHASE 11: Store interaction in episodic memory
       await this.memoryManager.storeEpisodicMemory({
@@ -402,9 +430,10 @@ export class ChatService {
     try {
       const client = this.supabaseService.getClient();
 
+      // 🔧 OPTIMIZATION: Select only needed fields to prevent over-fetching
       const { data, error } = await client
         .from('ai_chat_sessions')
-        .select('id, session_name, created_at, total_tokens, total_cost')
+        .select('id, session_name, created_at, total_tokens, total_cost') // Only needed fields
         .eq('user_id', userId)
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: false });
@@ -413,7 +442,13 @@ export class ChatService {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map((session: any) => ({
+        id: session.id,
+        session_name: session.session_name,
+        created_at: session.created_at,
+        total_tokens: session.total_tokens || 0,
+        total_cost: session.total_cost || 0,
+      }));
     } catch (error) {
       this.logger.error('Error getting user sessions:', error);
       throw new Error('Failed to get user sessions');
@@ -559,20 +594,31 @@ export class ChatService {
     const lowerMessage = message.toLowerCase();
 
     // Critical keywords
-    if (lowerMessage.includes('emergency') || lowerMessage.includes('urgent') ||
-        lowerMessage.includes('critical') || lowerMessage.includes('asap')) {
+    if (
+      lowerMessage.includes('emergency') ||
+      lowerMessage.includes('urgent') ||
+      lowerMessage.includes('critical') ||
+      lowerMessage.includes('asap')
+    ) {
       return 'critical';
     }
 
     // High priority
-    if (lowerMessage.includes('important') || lowerMessage.includes('deadline') ||
-        lowerMessage.includes('immediately') || lowerMessage.includes('today')) {
+    if (
+      lowerMessage.includes('important') ||
+      lowerMessage.includes('deadline') ||
+      lowerMessage.includes('immediately') ||
+      lowerMessage.includes('today')
+    ) {
       return 'high';
     }
 
     // Medium priority
-    if (lowerMessage.includes('soon') || lowerMessage.includes('quick') ||
-        lowerMessage.includes('fast')) {
+    if (
+      lowerMessage.includes('soon') ||
+      lowerMessage.includes('quick') ||
+      lowerMessage.includes('fast')
+    ) {
       return 'medium';
     }
 
@@ -584,7 +630,7 @@ export class ChatService {
    */
   private buildSystemPrompt(context: OptimizedContext, queryContext: QueryContext): string {
     const contextText = context.chunks
-      .map(chunk => `[${chunk.metadata?.document_title || chunk.source}] ${chunk.content}`)
+      .map((chunk) => `[${chunk.metadata?.document_title || chunk.source}] ${chunk.content}`)
       .join('\n\n');
 
     return `You are an advanced AI assistant for HOTELCRM, a comprehensive hotel management system.
@@ -620,9 +666,22 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
 
     // High importance keywords
     const highImportanceKeywords = [
-      'error', 'problem', 'issue', 'bug', 'fail', 'crash', 'emergency',
-      'security', 'payment', 'booking', 'reservation', 'cancel',
-      'refund', 'complaint', 'urgent', 'critical'
+      'error',
+      'problem',
+      'issue',
+      'bug',
+      'fail',
+      'crash',
+      'emergency',
+      'security',
+      'payment',
+      'booking',
+      'reservation',
+      'cancel',
+      'refund',
+      'complaint',
+      'urgent',
+      'critical',
     ];
 
     const combinedText = (message + response).toLowerCase();
@@ -642,7 +701,11 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
   /**
    * Update semantic memory with new knowledge from conversation
    */
-  private async updateSemanticMemory(message: string, response: string, agencyId: string): Promise<void> {
+  private async updateSemanticMemory(
+    message: string,
+    response: string,
+    agencyId: string,
+  ): Promise<void> {
     try {
       // Extract key concepts from the conversation
       const concepts = this.extractConcepts(message, response);
@@ -666,7 +729,10 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
   /**
    * Extract concepts from conversation for semantic memory
    */
-  private extractConcepts(message: string, response: string): Array<{
+  private extractConcepts(
+    message: string,
+    response: string,
+  ): Array<{
     name: string;
     category: string;
     fact: string;
@@ -691,7 +757,7 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
         fact: 'Hotel bookings involve check-in/check-out dates, guest information, and payment processing',
         relationships: [
           { relatedConcept: 'Payment Processing', relationshipType: 'requires', strength: 0.8 },
-          { relatedConcept: 'Guest Management', relationshipType: 'involves', strength: 0.9 }
+          { relatedConcept: 'Guest Management', relationshipType: 'involves', strength: 0.9 },
         ],
         confidence: 0.8,
       });
@@ -705,7 +771,7 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
         fact: 'Payments are processed through Stripe with support for multiple currencies',
         relationships: [
           { relatedConcept: 'Stripe Integration', relationshipType: 'uses', strength: 0.9 },
-          { relatedConcept: 'Hotel Booking Process', relationshipType: 'supports', strength: 0.8 }
+          { relatedConcept: 'Hotel Booking Process', relationshipType: 'supports', strength: 0.8 },
         ],
         confidence: 0.9,
       });

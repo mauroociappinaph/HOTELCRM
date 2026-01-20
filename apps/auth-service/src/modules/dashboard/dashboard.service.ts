@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 import { DashboardDataDto, DashboardStatsDto, RecentActivityDto } from '@hotel-crm/shared';
+
+import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 @Injectable()
 export class DashboardService {
@@ -87,12 +88,14 @@ export class DashboardService {
     // Optimized: Single query to get all booking statistics
     const { data: bookingStats, error: bookingError } = await client
       .from('bookings')
-      .select(`
+      .select(
+        `
         total_amount,
         payment_status,
         start_date,
         agency_id
-      `)
+      `,
+      )
       .eq('agency_id', agencyId);
 
     if (bookingError) {
@@ -104,14 +107,14 @@ export class DashboardService {
     const bookings = bookingStats || [];
     const totalBookings = bookings.length;
     const totalRevenue = bookings
-      .filter(b => b.payment_status === 'paid')
+      .filter((b) => b.payment_status === 'paid')
       .reduce((sum, b) => sum + (b.total_amount || 0), 0);
-    const pendingPayments = bookings.filter(b => b.payment_status === 'pending').length;
+    const pendingPayments = bookings.filter((b) => b.payment_status === 'pending').length;
 
     // Upcoming bookings (next 30 days) - optimized with date filtering
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    const upcomingBookings = bookings.filter(b => {
+    const upcomingBookings = bookings.filter((b) => {
       if (!b.start_date) return false;
       const startDate = new Date(b.start_date);
       return startDate >= new Date() && startDate <= thirtyDaysFromNow;

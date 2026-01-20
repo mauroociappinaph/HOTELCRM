@@ -1,12 +1,6 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Headers,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Post, Body, Headers, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
 import { StripeService } from './stripe.service';
 
 @Controller('payments/webhooks')
@@ -22,10 +16,7 @@ export class WebhooksController {
    * Handle Stripe webhooks
    */
   @Post()
-  async handleWebhook(
-    @Body() rawBody: Buffer,
-    @Headers() headers: Record<string, string>,
-  ) {
+  async handleWebhook(@Body() rawBody: Buffer, @Headers() headers: Record<string, string>) {
     try {
       const sig = headers['stripe-signature'];
       const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');

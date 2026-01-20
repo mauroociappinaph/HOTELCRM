@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 export interface SecurityUser {
@@ -49,8 +50,14 @@ export class SecurityService {
           .from('profiles')
           .update({
             role: 'admin',
-            permissions: ['security.read', 'security.write', 'security.admin', 'logs.read', 'alerts.manage'],
-            updated_at: new Date().toISOString()
+            permissions: [
+              'security.read',
+              'security.write',
+              'security.admin',
+              'logs.read',
+              'alerts.manage',
+            ],
+            updated_at: new Date().toISOString(),
           })
           .eq('email', email)
           .select()
@@ -68,9 +75,15 @@ export class SecurityService {
           email,
           name,
           role: 'admin',
-          permissions: ['security.read', 'security.write', 'security.admin', 'logs.read', 'alerts.manage'],
+          permissions: [
+            'security.read',
+            'security.write',
+            'security.admin',
+            'logs.read',
+            'alerts.manage',
+          ],
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -104,14 +117,16 @@ export class SecurityService {
   }
 
   // Get security events with advanced filtering
-  async getSecurityEvents(filters: {
-    limit?: number;
-    offset?: number;
-    severity?: string;
-    event_type?: string;
-    date_from?: string;
-    date_to?: string;
-  } = {}): Promise<any[]> {
+  async getSecurityEvents(
+    filters: {
+      limit?: number;
+      offset?: number;
+      severity?: string;
+      event_type?: string;
+      date_from?: string;
+      date_to?: string;
+    } = {},
+  ): Promise<any[]> {
     try {
       let query = this.supabaseService
         .getClient()
@@ -140,7 +155,7 @@ export class SecurityService {
       }
 
       if (filters.offset) {
-        query = query.range(filters.offset, (filters.offset + (filters.limit || 50)) - 1);
+        query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
       }
 
       const { data, error } = await query;
@@ -181,7 +196,7 @@ export class SecurityService {
     try {
       const updateData: any = {
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       if (status === 'acknowledged') {
@@ -225,9 +240,17 @@ export class SecurityService {
         // Total events count
         this.supabaseService.getClient().from('security_events').select('id', { count: 'exact' }),
         // Active alerts
-        this.supabaseService.getClient().from('security_alerts').select('id, severity').eq('status', 'active'),
+        this.supabaseService
+          .getClient()
+          .from('security_alerts')
+          .select('id, severity')
+          .eq('status', 'active'),
         // Today's events
-        this.supabaseService.getClient().from('security_events').select('event_type').gte('created_at', todayStr)
+        this.supabaseService
+          .getClient()
+          .from('security_events')
+          .select('event_type')
+          .gte('created_at', todayStr),
       ]);
 
       const totalEvents = eventsResult.count || 0;
@@ -237,10 +260,11 @@ export class SecurityService {
       return {
         totalEvents,
         activeAlerts: activeAlerts.length,
-        criticalAlerts: activeAlerts.filter(a => a.severity === 'critical').length,
-        attackAttemptsToday: todayEvents.filter(e => e.event_type === 'attack_attempt').length,
-        rateLimitHitsToday: todayEvents.filter(e => e.event_type === 'rate_limit_hit').length,
-        circuitBreakerTripsToday: todayEvents.filter(e => e.event_type === 'circuit_breaker_open').length
+        criticalAlerts: activeAlerts.filter((a) => a.severity === 'critical').length,
+        attackAttemptsToday: todayEvents.filter((e) => e.event_type === 'attack_attempt').length,
+        rateLimitHitsToday: todayEvents.filter((e) => e.event_type === 'rate_limit_hit').length,
+        circuitBreakerTripsToday: todayEvents.filter((e) => e.event_type === 'circuit_breaker_open')
+          .length,
       };
     } catch (error) {
       this.logger.error('Failed to get security dashboard stats', error);
@@ -256,7 +280,7 @@ export class SecurityService {
       this.logger.warn(`SECURITY ALERT: ${alert.title}`, {
         severity: alert.severity,
         description: alert.description,
-        metadata: alert.metadata
+        metadata: alert.metadata,
       });
 
       // Placeholder for external notifications:
@@ -264,7 +288,6 @@ export class SecurityService {
       // - Slack webhook
       // - SMS notifications for critical alerts
       // - Push notifications
-
     } catch (error) {
       this.logger.error('Failed to send alert notification', error);
       throw error;
@@ -281,22 +304,21 @@ export class SecurityService {
     ip_address?: string;
   }): Promise<void> {
     try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .from('audit_logs')
-        .insert({
-          user_id: action.user_id,
-          action_type: action.action_type,
-          resource_type: action.resource_type,
-          resource_id: action.resource_id,
-          details: action.details,
-          ip_address: action.ip_address,
-          created_at: new Date().toISOString()
-        });
+      const { error } = await this.supabaseService.getClient().from('audit_logs').insert({
+        user_id: action.user_id,
+        action_type: action.action_type,
+        resource_type: action.resource_type,
+        resource_id: action.resource_id,
+        details: action.details,
+        ip_address: action.ip_address,
+        created_at: new Date().toISOString(),
+      });
 
       if (error) {
         // If audit_logs table doesn't exist yet, just log to console
-        this.logger.log(`AUDIT: ${action.action_type} by ${action.user_id} on ${action.resource_type}`);
+        this.logger.log(
+          `AUDIT: ${action.action_type} by ${action.user_id} on ${action.resource_type}`,
+        );
       }
     } catch (error) {
       this.logger.error('Failed to log security action', error);

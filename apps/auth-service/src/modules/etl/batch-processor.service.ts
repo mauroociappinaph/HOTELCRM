@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 @Injectable()
@@ -14,13 +15,15 @@ export class BatchProcessorService {
   async processBatch(pipelineId: string, records: any[], destinationTable: string): Promise<void> {
     if (records.length === 0) return;
 
-    this.logger.log(`📦 Processing batch of ${records.length} records to table: ${destinationTable}`);
+    this.logger.log(
+      `📦 Processing batch of ${records.length} records to table: ${destinationTable}`,
+    );
 
     try {
       const client = this.supabaseService.getClient();
 
       // Transform records for insertion
-      const transformedRecords = records.map(record => ({
+      const transformedRecords = records.map((record) => ({
         ...record.data,
         event_time: record.eventTime.toISOString(),
         processing_time: record.processingTime.toISOString(),
@@ -43,7 +46,6 @@ export class BatchProcessorService {
       }
 
       this.logger.log(`✅ Successfully processed ${records.length} records to ${destinationTable}`);
-
     } catch (error) {
       this.logger.error(`❌ Batch processing failed for pipeline ${pipelineId}:`, error);
       throw error;
@@ -60,7 +62,7 @@ export class BatchProcessorService {
       batchSize: number;
       onBatchComplete: (processed: number, failed: number) => void;
       onError: (error: Error) => void;
-    }
+    },
   ): Promise<void> {
     // For simplicity, we'll use setInterval with basic scheduling
     // In production, you'd use a proper job scheduler like node-cron
@@ -76,7 +78,6 @@ export class BatchProcessorService {
 
         // Call completion callback
         config.onBatchComplete(0, 0); // processed, failed
-
       } catch (error) {
         this.logger.error(`Batch job error for pipeline ${pipelineId}:`, error);
         config.onError(error as Error);

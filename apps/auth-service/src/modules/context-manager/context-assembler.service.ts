@@ -74,7 +74,7 @@ export class ContextAssemblerService {
   async assembleContext(
     availableChunks: ContextChunk[],
     queryContext: QueryContext,
-    budget: Partial<ContextBudget> = {}
+    budget: Partial<ContextBudget> = {},
   ): Promise<OptimizedContext> {
     const startTime = Date.now();
     const finalBudget = { ...this.defaultBudget, ...budget };
@@ -122,7 +122,7 @@ export class ContextAssemblerService {
    */
   private async scoreChunks(
     chunks: ContextChunk[],
-    queryContext: QueryContext
+    queryContext: QueryContext,
   ): Promise<ContextChunk[]> {
     const scoredChunks = await Promise.all(
       chunks.map(async (chunk) => {
@@ -136,7 +136,7 @@ export class ContextAssemblerService {
             individualScores: scores,
           },
         };
-      })
+      }),
     );
 
     // Sort by combined relevance score
@@ -148,7 +148,7 @@ export class ContextAssemblerService {
    */
   private async calculateMultiDimensionalScore(
     chunk: ContextChunk,
-    queryContext: QueryContext
+    queryContext: QueryContext,
   ): Promise<Record<string, number>> {
     const scores: Record<string, number> = {};
 
@@ -185,26 +185,29 @@ export class ContextAssemblerService {
     const contentSet = new Set(contentWords);
 
     // Jaccard similarity
-    const intersection = new Set([...querySet].filter(x => contentSet.has(x)));
+    const intersection = new Set([...querySet].filter((x) => contentSet.has(x)));
     const union = new Set([...querySet, ...contentSet]);
 
     const jaccardSimilarity = intersection.size / union.size;
 
     // BM25-like scoring for term frequency
     const bm25Score = queryWords.reduce((score, word) => {
-      const tf = contentWords.filter(w => w === word).length;
-      const idf = Math.log(1 + (contentWords.length / (tf + 1)));
-      return score + (tf * idf);
+      const tf = contentWords.filter((w) => w === word).length;
+      const idf = Math.log(1 + contentWords.length / (tf + 1));
+      return score + tf * idf;
     }, 0);
 
     // Combine scores
-    return Math.min(1.0, (jaccardSimilarity * 0.6) + (bm25Score * 0.4));
+    return Math.min(1.0, jaccardSimilarity * 0.6 + bm25Score * 0.4);
   }
 
   /**
    * Calculate conversational relevance based on conversation history
    */
-  private calculateConversationalRelevance(chunk: ContextChunk, queryContext: QueryContext): number {
+  private calculateConversationalRelevance(
+    chunk: ContextChunk,
+    queryContext: QueryContext,
+  ): number {
     if (!queryContext.conversationHistory || queryContext.conversationHistory.length === 0) {
       return 0.5; // Neutral score if no conversation history
     }
@@ -287,7 +290,8 @@ export class ContextAssemblerService {
       // Check similarity with already selected chunks
       for (const selectedChunk of diverseChunks) {
         const similarity = this.calculateChunkSimilarity(currentChunk, selectedChunk);
-        if (similarity > 0.8) { // High similarity threshold
+        if (similarity > 0.8) {
+          // High similarity threshold
           isDiverse = false;
           break;
         }
@@ -312,17 +316,22 @@ export class ContextAssemblerService {
     const selected: ContextChunk[] = [];
     const remaining = [...chunks];
 
-    while (remaining.length > 0 && selected.length < 10) { // Limit to top 10
+    while (remaining.length > 0 && selected.length < 10) {
+      // Limit to top 10
       let bestIndex = 0;
       let bestScore = -1;
 
       for (let i = 0; i < remaining.length; i++) {
         const chunk = remaining[i];
         const relevance = chunk.relevanceScore;
-        const redundancy = selected.length > 0
-          ? Math.max(...selected.map(selectedChunk =>
-              this.calculateChunkSimilarity(chunk, selectedChunk)))
-          : 0;
+        const redundancy =
+          selected.length > 0
+            ? Math.max(
+                ...selected.map((selectedChunk) =>
+                  this.calculateChunkSimilarity(chunk, selectedChunk),
+                ),
+              )
+            : 0;
 
         // MMR score: balance relevance vs diversity
         const mmrScore = 0.7 * relevance - 0.3 * redundancy;
@@ -345,9 +354,9 @@ export class ContextAssemblerService {
    */
   private async selectOptimalChunks(
     chunks: ContextChunk[],
-    budget: ContextBudget
+    budget: ContextBudget,
   ): Promise<ContextChunk[]> {
-    let selectedChunks: ContextChunk[] = [];
+    const selectedChunks: ContextChunk[] = [];
     let totalTokens = 0;
 
     // Greedy selection with token budget
@@ -386,13 +395,13 @@ export class ContextAssemblerService {
    */
   private async optimizeSelectedChunks(
     chunks: ContextChunk[],
-    budget: ContextBudget
+    budget: ContextBudget,
   ): Promise<ContextChunk[]> {
     // Sort by final relevance score
     chunks.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
     // Apply final compression if needed
-    let totalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
+    const totalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
 
     if (totalTokens > budget.targetTokens) {
       chunks = await this.compressChunks(chunks, budget.targetTokens);
@@ -404,9 +413,12 @@ export class ContextAssemblerService {
   /**
    * Compress chunks to fit token budget
    */
-  private async compressChunks(chunks: ContextChunk[], targetTokens: number): Promise<ContextChunk[]> {
+  private async compressChunks(
+    chunks: ContextChunk[],
+    targetTokens: number,
+  ): Promise<ContextChunk[]> {
     // Simple compression: truncate less important chunks
-    let compressedChunks: ContextChunk[] = [];
+    const compressedChunks: ContextChunk[] = [];
     let currentTokens = 0;
 
     for (const chunk of chunks) {
@@ -416,7 +428,8 @@ export class ContextAssemblerService {
       } else {
         // Truncate chunk content to fit remaining tokens
         const remainingTokens = targetTokens - currentTokens;
-        if (remainingTokens > 100) { // Minimum useful chunk size
+        if (remainingTokens > 100) {
+          // Minimum useful chunk size
           const compressedChunk = {
             ...chunk,
             content: this.truncateContent(chunk.content, remainingTokens),
@@ -449,7 +462,7 @@ export class ContextAssemblerService {
       scores.diversityScore * weights.diversity +
       scores.authorityScore * weights.authority +
       (scores.conversationalRelevance || 0) * 0.1 + // Bonus weight
-      (scores.domainRelevance || 0) * 0.1     // Bonus weight
+      (scores.domainRelevance || 0) * 0.1 // Bonus weight
     );
   }
 
@@ -461,7 +474,7 @@ export class ContextAssemblerService {
     const words1 = new Set(chunk1.content.toLowerCase().split(/\s+/));
     const words2 = new Set(chunk2.content.toLowerCase().split(/\s+/));
 
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const intersection = new Set([...words1].filter((x) => words2.has(x)));
     const union = new Set([...words1, ...words2]);
 
     return intersection.size / union.size;
@@ -478,11 +491,9 @@ export class ContextAssemblerService {
     for (const message of messages) {
       // Simple keyword extraction (in production, use NLP)
       const words = message.content.toLowerCase().split(/\s+/);
-      const importantWords = words.filter(word =>
-        word.length > 3 && !this.isStopWord(word)
-      );
+      const importantWords = words.filter((word) => word.length > 3 && !this.isStopWord(word));
 
-      importantWords.forEach(word => topics.add(word));
+      importantWords.forEach((word) => topics.add(word));
     }
 
     return Array.from(topics).slice(0, 10); // Limit to top 10 topics
@@ -493,8 +504,34 @@ export class ContextAssemblerService {
    */
   private isStopWord(word: string): boolean {
     const stopWords = new Set([
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-      'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her'
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+      'this',
+      'that',
+      'these',
+      'those',
+      'i',
+      'you',
+      'he',
+      'she',
+      'it',
+      'we',
+      'they',
+      'me',
+      'him',
+      'her',
     ]);
     return stopWords.has(word);
   }

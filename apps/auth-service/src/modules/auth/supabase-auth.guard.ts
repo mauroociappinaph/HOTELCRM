@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 @Injectable()

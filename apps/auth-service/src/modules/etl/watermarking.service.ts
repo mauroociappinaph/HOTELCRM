@@ -10,7 +10,9 @@ export class WatermarkingService {
    */
   async initializeWatermark(pipelineId: string, initialWatermark: Date): Promise<void> {
     this.watermarks.set(pipelineId, initialWatermark);
-    this.logger.log(`🏷️ Initialized watermark for pipeline ${pipelineId}: ${initialWatermark.toISOString()}`);
+    this.logger.log(
+      `🏷️ Initialized watermark for pipeline ${pipelineId}: ${initialWatermark.toISOString()}`,
+    );
   }
 
   /**
@@ -28,26 +30,34 @@ export class WatermarkingService {
 
     if (newWatermark > currentWatermark) {
       this.watermarks.set(pipelineId, newWatermark);
-      this.logger.debug(`🏷️ Updated watermark for pipeline ${pipelineId}: ${newWatermark.toISOString()}`);
+      this.logger.debug(
+        `🏷️ Updated watermark for pipeline ${pipelineId}: ${newWatermark.toISOString()}`,
+      );
     }
   }
 
   /**
    * Apply watermarking to records - filter out records before watermark
    */
-  async applyWatermark(pipelineId: string, records: any[], watermarkDelayMinutes: number): Promise<any[]> {
+  async applyWatermark(
+    pipelineId: string,
+    records: any[],
+    watermarkDelayMinutes: number,
+  ): Promise<any[]> {
     const watermark = await this.getWatermark(pipelineId);
-    const delayedWatermark = new Date(watermark.getTime() - (watermarkDelayMinutes * 60 * 1000));
+    const delayedWatermark = new Date(watermark.getTime() - watermarkDelayMinutes * 60 * 1000);
 
     // For late-arriving data, we might still want to process records that arrived
     // after the watermark but before the delayed watermark
-    const filteredRecords = records.filter(record => {
+    const filteredRecords = records.filter((record) => {
       return record.eventTime >= delayedWatermark;
     });
 
     const lateRecords = records.length - filteredRecords.length;
     if (lateRecords > 0) {
-      this.logger.warn(`🏷️ Filtered ${lateRecords} late-arriving records for pipeline ${pipelineId}`);
+      this.logger.warn(
+        `🏷️ Filtered ${lateRecords} late-arriving records for pipeline ${pipelineId}`,
+      );
     }
 
     return filteredRecords;

@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 /**

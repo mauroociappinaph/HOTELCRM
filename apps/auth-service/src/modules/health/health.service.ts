@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 export interface HealthCheckResult {
@@ -78,9 +79,16 @@ export class HealthService {
 
       // Extract results or provide fallback for failed checks
       const checks = {
-        database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : this.getFallbackDatabaseHealth(),
-        memory: memoryHealth.status === 'fulfilled' ? memoryHealth.value : this.getFallbackMemoryHealth(),
-        external: externalHealth.status === 'fulfilled' ? externalHealth.value : this.getFallbackExternalHealth(),
+        database:
+          databaseHealth.status === 'fulfilled'
+            ? databaseHealth.value
+            : this.getFallbackDatabaseHealth(),
+        memory:
+          memoryHealth.status === 'fulfilled' ? memoryHealth.value : this.getFallbackMemoryHealth(),
+        external:
+          externalHealth.status === 'fulfilled'
+            ? externalHealth.value
+            : this.getFallbackExternalHealth(),
         ai: aiHealth.status === 'fulfilled' ? aiHealth.value : this.getFallbackAIHealth(),
       };
 
@@ -96,13 +104,14 @@ export class HealthService {
       };
 
       // Log health check results for monitoring
-      this.logger.log(`Health check completed in ${Date.now() - startTime}ms - Status: ${overallStatus.toUpperCase()}`);
+      this.logger.log(
+        `Health check completed in ${Date.now() - startTime}ms - Status: ${overallStatus.toUpperCase()}`,
+      );
 
       // Log warnings for degraded components
       this.logHealthWarnings(checks);
 
       return result;
-
     } catch (error) {
       this.logger.error('Critical error during health check:', error);
       return this.getCriticalFailureHealth();
@@ -118,11 +127,7 @@ export class HealthService {
       const client = this.supabaseService.getClient();
       const startTime = Date.now();
 
-      const { error } = await client
-        .from('agencies')
-        .select('id')
-        .limit(1)
-        .single();
+      const { error } = await client.from('agencies').select('id').limit(1).single();
 
       const latency = Date.now() - startTime;
 
@@ -152,10 +157,7 @@ export class HealthService {
 
     try {
       // Check basic connectivity
-      const { data, error } = await client
-        .from('agencies')
-        .select('id')
-        .limit(1);
+      const { data, error } = await client.from('agencies').select('id').limit(1);
 
       const latency = Date.now() - startTime;
 
@@ -211,7 +213,9 @@ export class HealthService {
         used: Math.round(usedMemory / 1024 / 1024), // MB
         total: Math.round(totalMemory / 1024 / 1024), // MB
         percentage: Math.round(percentage * 100) / 100,
-        externalFragmentation: memUsage.external ? Math.round(memUsage.external / 1024 / 1024) : undefined,
+        externalFragmentation: memUsage.external
+          ? Math.round(memUsage.external / 1024 / 1024)
+          : undefined,
       };
     } catch (error) {
       this.logger.warn('Memory health check failed:', error);
@@ -228,22 +232,27 @@ export class HealthService {
     const results: Partial<ExternalServicesHealth> = {};
 
     // Check each service in parallel
-    const checks = services.map(service => this.checkServiceHealth(service));
+    const checks = services.map((service) => this.checkServiceHealth(service));
 
     try {
       const healthResults = await Promise.allSettled(checks);
 
       services.forEach((service, index) => {
         const result = healthResults[index];
-        results[service] = result.status === 'fulfilled'
-          ? result.value
-          : { status: 'unknown', lastChecked: new Date().toISOString(), error: 'Check failed' };
+        results[service] =
+          result.status === 'fulfilled'
+            ? result.value
+            : { status: 'unknown', lastChecked: new Date().toISOString(), error: 'Check failed' };
       });
     } catch (error) {
       this.logger.warn('External services health check failed:', error);
       // Provide fallback for all services
-      services.forEach(service => {
-        results[service] = { status: 'unknown', lastChecked: new Date().toISOString(), error: 'Check failed' };
+      services.forEach((service) => {
+        results[service] = {
+          status: 'unknown',
+          lastChecked: new Date().toISOString(),
+          error: 'Check failed',
+        };
       });
     }
 
@@ -277,7 +286,7 @@ export class HealthService {
           return {
             status: 'unknown',
             lastChecked: new Date().toISOString(),
-            error: 'Service not configured for health checks'
+            error: 'Service not configured for health checks',
           };
       }
     } catch (error) {
@@ -285,7 +294,7 @@ export class HealthService {
         status: 'unhealthy',
         lastChecked: new Date().toISOString(),
         latency: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -298,10 +307,7 @@ export class HealthService {
 
     try {
       const client = this.supabaseService.getClient();
-      const { error } = await client
-        .from('agencies')
-        .select('id')
-        .limit(1);
+      const { error } = await client.from('agencies').select('id').limit(1);
 
       if (error) throw error;
 
@@ -324,7 +330,7 @@ export class HealthService {
       return {
         status: 'unknown',
         lastChecked: new Date().toISOString(),
-        error: 'Stripe not configured'
+        error: 'Stripe not configured',
       };
     }
 
@@ -358,7 +364,7 @@ export class HealthService {
       return {
         status: 'unknown',
         lastChecked: new Date().toISOString(),
-        error: 'OpenRouter not configured'
+        error: 'OpenRouter not configured',
       };
     }
 
@@ -386,7 +392,7 @@ export class HealthService {
       return {
         status: 'unknown',
         lastChecked: new Date().toISOString(),
-        error: 'Voyage AI not configured'
+        error: 'Voyage AI not configured',
       };
     }
 
@@ -412,7 +418,7 @@ export class HealthService {
       return {
         status: 'unknown',
         lastChecked: new Date().toISOString(),
-        error: 'Daily.co not configured'
+        error: 'Daily.co not configured',
       };
     }
 
@@ -476,8 +482,9 @@ export class HealthService {
     }
 
     // Check external services for unhealthy status
-    const externalServicesUnhealthy = Object.values(checks.external)
-      .some(service => service.status === 'unhealthy');
+    const externalServicesUnhealthy = Object.values(checks.external).some(
+      (service) => service.status === 'unhealthy',
+    );
 
     if (externalServicesUnhealthy) {
       return 'degraded';
@@ -547,7 +554,7 @@ export class HealthService {
     const unknownService: ServiceHealth = {
       status: 'unknown',
       lastChecked: new Date().toISOString(),
-      error: 'Health check failed'
+      error: 'Health check failed',
     };
 
     return {
