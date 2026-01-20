@@ -134,7 +134,7 @@ print_status "DOCS" "Checking documentation coverage..."
 total_functions=$(grep -r "function\|=>" apps/auth-service/src --include="*.ts" | wc -l)
 documented_functions=$(grep -r -A1 "function\|=>" apps/auth-service/src --include="*.ts" | grep -c "/\*\*" || echo "0")
 
-if [ "$total_functions" -gt 0 ]; then
+if [ "$total_functions" -gt 0 ] && [ "$documented_functions" -ge 0 ]; then
     coverage=$((documented_functions * 100 / total_functions))
     if [ "$coverage" -ge 80 ]; then
         print_success "Documentation coverage: ${coverage}%"
@@ -143,8 +143,8 @@ if [ "$total_functions" -gt 0 ]; then
     else
         print_error "Documentation coverage: ${coverage}% (needs improvement)"
     fi
-fi
-
+else
+    print_warning "Could not calculate documentation coverage"
 # 6. Import/Export Analysis
 print_status "IMPORTS" "Analyzing import/export patterns..."
 unused_imports=$(node -e "
