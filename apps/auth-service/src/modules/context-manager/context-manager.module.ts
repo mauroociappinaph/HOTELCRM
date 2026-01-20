@@ -3,7 +3,6 @@ import { ContextAssemblerService } from './context-assembler.service';
 import { MemoryManagerService } from './memory-manager.service';
 import { ContextOptimizerService } from './context-optimizer.service';
 import { MultiAgentCoordinatorService } from './multi-agent-coordinator.service';
-import { ContextMetricsService } from './context-metrics.service';
 import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
 
 @Module({
@@ -12,15 +11,13 @@ import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
     ContextAssemblerService,
     MemoryManagerService,
     ContextOptimizerService,
-    // MultiAgentCoordinatorService, // TODO: Implement
-    // ContextMetricsService, // TODO: Implement
+    MultiAgentCoordinatorService,
   ],
   exports: [
     ContextAssemblerService,
     MemoryManagerService,
     ContextOptimizerService,
-    // MultiAgentCoordinatorService, // TODO: Implement
-    // ContextMetricsService, // TODO: Implement
+    MultiAgentCoordinatorService,
   ],
 })
 export class ContextManagerModule {}
