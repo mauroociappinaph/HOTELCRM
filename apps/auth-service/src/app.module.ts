@@ -7,6 +7,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthModule } from './modules/health/health.module';
 import { SecurityModule } from './modules/security/security.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { EtlModule } from './modules/etl/etl.module';
 
 /**
  * Módulo raíz del microservicio de autenticación.
@@ -25,6 +26,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
     HealthModule,
     SecurityModule,
     MonitoringModule,
+    EtlModule,
   ],
 })
 export class AppModule {}
