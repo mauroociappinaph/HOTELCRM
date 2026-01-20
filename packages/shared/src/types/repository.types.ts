@@ -4,6 +4,9 @@
  */
 
 import { Option, Result } from './advanced-utils.types';
+import { Booking, BookingStatus } from './booking.types';
+import { User, UserRole } from './user.types';
+import { Agency, Client, Payment } from './index';
 
 /**
  * Base repository interface with CRUD operations
@@ -152,31 +155,6 @@ export interface ChatMessage extends BaseEntity {
   metadata: Record<string, any>;
 }
 
-export interface Booking extends BaseEntity {
-  userId: string;
-  agencyId: string;
-  roomId: string;
-  checkInDate: Date;
-  checkOutDate: Date;
-  guestCount: number;
-  totalAmount: number;
-  currency: string;
-  status: BookingStatus;
-  paymentMethod?: PaymentMethod;
-  specialRequests?: string;
-}
-
-export interface User extends BaseEntity {
-  email: string;
-  firstName: string;
-  lastName: string;
-  agencyId: string;
-  role: UserRole;
-  isActive: boolean;
-  lastLogin?: Date;
-  preferences: Record<string, any>;
-}
-
 export interface Document extends BaseEntity {
   title: string;
   content: string;
@@ -185,30 +163,6 @@ export interface Document extends BaseEntity {
   embeddings?: number[];
   metadata: Record<string, any>;
 }
-
-/**
- * Supporting types from existing codebase
- */
-export type BookingStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'checked_in'
-  | 'checked_out'
-  | 'cancelled';
-
-export type PaymentMethod =
-  | 'credit_card'
-  | 'debit_card'
-  | 'paypal'
-  | 'bank_transfer'
-  | 'cash';
-
-export type UserRole =
-  | 'guest'
-  | 'customer'
-  | 'agency_staff'
-  | 'agency_admin'
-  | 'system_admin';
 
 /**
  * Repository Factory for dependency injection

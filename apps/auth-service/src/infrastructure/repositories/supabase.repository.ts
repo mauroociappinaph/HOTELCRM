@@ -25,7 +25,7 @@ import {
   User,
   Document,
   ITransaction,
-} from '../../../packages/shared/src';
+} from '@hotel-crm/shared';
 import { SupabaseService } from '../supabase/supabase.service';
 
 /**
@@ -261,7 +261,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply options
       if (options?.orderBy) {
-        options.orderBy.forEach(order => {
+        options.orderBy.forEach((order: { field: string; direction: 'asc' | 'desc' }) => {
           query = query.order(order.field, { ascending: order.direction === 'asc' });
         });
       }
@@ -329,7 +329,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
-        const searchConditions = query.fields.map(field =>
+        const searchConditions = query.fields.map((field: string) =>
           `${field}.ilike.%${query.query}%`
         );
         // Note: This is a simplified implementation. Real full-text search would be more complex
