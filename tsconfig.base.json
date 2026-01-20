@@ -12,6 +12,11 @@
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@hotel-crm/shared": ["packages/shared/src/index.ts"],
+      "@hotel-crm/shared/*": ["packages/shared/src/*"]
+    }
   }
 }
