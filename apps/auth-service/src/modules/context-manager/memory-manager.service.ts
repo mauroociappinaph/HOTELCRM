@@ -394,8 +394,8 @@ export class MemoryManagerService {
     if (error) throw error;
 
     return (data || [])
-      .map(memory => ({
-        type: 'semantic',
+      .map((memory: SemanticMemory) => ({
+        type: 'semantic' as const,
         content: memory,
         relevanceScore: this.calculateSemanticRelevance(memory, query.query),
         recencyScore: this.calculateRecencyScore(memory.lastUpdated),

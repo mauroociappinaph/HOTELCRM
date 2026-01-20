@@ -1,12 +1,22 @@
 // Barrel export principal del paquete shared
-export * from './types';
 export * from './dtos';
+
+// Dashboard DTOs (exported specifically to avoid conflicts)
+export { DashboardDataDto, DashboardStatsDto, RecentActivityDto } from './dtos/dashboard-stats.dto';
 export * from './constants';
+
+// Core types (excluding conflicts)
+export type { Booking, BookingStatus } from './types/booking.types';
+export type { User, UserRole } from './types/user.types';
+export type { Client } from './types/client.types';
+export type { Agency } from './types/agency.types';
+export type { Payment } from './types/payments.types';
+export * from './types/video.types';
 
 // TypeScript Pro - Advanced Utility Types
 export * from './types/advanced-utils.types';
-export * from './types/repository.types';
-// Export specific types to avoid conflicts with existing types
+
+// Type-safe builders
 export {
   TypeSafeBuilder,
   FluentBuilder,
@@ -19,7 +29,7 @@ export {
   createTypeSafeFactory,
 } from './types/type-safe-builder';
 
-// Repository Pattern Exports (avoiding conflicts)
+// Repository Pattern Exports (avoiding conflicts with existing types)
 export type {
   IRepository,
   IQueryRepository,

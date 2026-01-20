@@ -106,7 +106,7 @@ export class ChatService {
         source: result.document_category || 'unknown',
         relevanceScore: result.similarity,
         tokenCount: this.estimateTokenCount(result.chunk_content),
-        timestamp: new Date(result.created_at || Date.now()),
+        timestamp: new Date(Date.now()),
         metadata: {
           document_title: result.document_title,
           document_category: result.document_category,
