@@ -33,7 +33,14 @@ export interface Subscription {
   planId: string;
   plan?: SubscriptionPlan;
   stripeSubscriptionId: string;
-  status: 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid';
+  status:
+    | 'active'
+    | 'canceled'
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'past_due'
+    | 'trialing'
+    | 'unpaid';
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   trialStart?: Date;
@@ -59,7 +66,7 @@ export interface Payment {
   description?: string;
   isSubscriptionPayment: boolean;
   subscriptionId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   failureCode?: string;
   failureMessage?: string;
   createdAt: Date;
@@ -133,7 +140,7 @@ export interface StripeWebhookEvent {
   id: string;
   stripeEventId: string;
   eventType: string;
-  eventData: any;
+  eventData: Record<string, unknown>;
   processed: boolean;
   processedAt?: Date;
   errorMessage?: string;

@@ -87,7 +87,7 @@ export interface MeetingEvent {
   meetingId: string;
   participantId?: string;
   eventType: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -118,7 +118,7 @@ export interface DailyWebhookEvent {
   roomUrl?: string;
   participantId?: string;
   participantName?: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, unknown>;
   processed: boolean;
   processedAt?: Date;
   errorMessage?: string;
@@ -251,7 +251,7 @@ export interface DailyParticipant {
   user_name?: string;
   joined_at: string;
   left_at?: string;
-  recordings?: any[];
+  recordings?: DailyRecording[];
   tracks: {
     [trackId: string]: {
       kind: 'audio' | 'video' | 'screenVideo';
@@ -293,13 +293,13 @@ export interface DailyEvent {
     | 'app-message';
   participant?: DailyParticipant;
   participants?: DailyParticipant[];
-  track?: any;
+  track?: Record<string, unknown>;
   recording?: DailyRecording;
   room?: DailyRoomResponse;
-  error?: any;
-  network?: any;
+  error?: Error | Record<string, unknown>;
+  network?: Record<string, unknown>;
   activeSpeaker?: string;
-  message?: any;
+  message?: Record<string, unknown>;
 }
 
 // Meeting state management
@@ -329,7 +329,7 @@ export interface ParticipantTile {
   participant: MeetingParticipant;
   isLocal: boolean;
   isSpeaking: boolean;
-  videoTrack?: any;
-  audioTrack?: any;
-  screenTrack?: any;
+  videoTrack?: Record<string, unknown>;
+  audioTrack?: Record<string, unknown>;
+  screenTrack?: Record<string, unknown>;
 }

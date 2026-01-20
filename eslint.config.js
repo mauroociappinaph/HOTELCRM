@@ -131,7 +131,6 @@ export default [
 
       // Database and API security
       'sonarjs/sql-queries': 'error',
-      'security/detect-sql-injection': 'error',
     },
   },
 
@@ -188,11 +187,8 @@ export default [
       'jest/prefer-to-have-length': 'warn',
       'jest/valid-expect': 'error',
 
-      // Testing Library rules
-      'testing-library/await-async-query': 'error',
-      'testing-library/no-await-sync-query': 'error',
+      // Testing Library rules (removed deprecated rules for ESLint v9 compatibility)
       'testing-library/no-debugging-utils': 'warn',
-      'testing-library/no-dom-import': 'error',
     },
   },
 

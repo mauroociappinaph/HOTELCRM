@@ -1,11 +1,23 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: 'node',
+  preset: 'ts-jest',
+  extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+      tsconfig: '<rootDir>/tsconfig.spec.json',
+    },
+  },
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', {
-      tsconfig: '<rootDir>/tsconfig.json',
+      tsconfig: '<rootDir>/tsconfig.spec.json',
+      useESM: true,
     }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@faker-js/faker|@testcontainers|testcontainers)/)',
+  ],
   moduleFileExtensions: ['ts', 'js', 'mjs'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
