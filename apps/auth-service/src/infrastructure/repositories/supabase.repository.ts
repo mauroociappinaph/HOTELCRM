@@ -25,8 +25,24 @@ import {
   User,
   Document,
   ITransaction,
-} from '../../../packages/shared/src';
+} from '@hotel-crm/shared';
 import { SupabaseService } from '../supabase/supabase.service';
+
+/**
+ * Type-safe error message extractor for Supabase errors
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return 'Unknown error occurred';
+}
 
 /**
  * Base Supabase Repository with common CRUD operations
@@ -53,12 +69,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
         if (error.code === 'PGRST116') { // Not found
           return { some: false, value: undefined };
         }
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return { some: true, value: data as T };
     } catch (error) {
-      throw new Error(`Failed to find ${this.tableName} by id: ${error.message}`);
+      throw new Error(`Failed to find ${this.tableName} by id: ${getErrorMessage(error)}`);
     }
   }
 
@@ -80,12 +96,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return (data || []) as T[];
     } catch (error) {
-      throw new Error(`Failed to find all ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to find all ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -106,12 +122,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
         .single();
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return data as T;
     } catch (error) {
-      throw new Error(`Failed to create ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to create ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -134,12 +150,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
         if (error.code === 'PGRST116') { // Not found
           return { some: false, value: undefined };
         }
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return { some: true, value: data as T };
     } catch (error) {
-      throw new Error(`Failed to update ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to update ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -152,12 +168,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
         .eq('id', id);
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return true;
     } catch (error) {
-      throw new Error(`Failed to delete ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to delete ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -170,12 +186,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
         .eq('id', id);
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return (count || 0) > 0;
     } catch (error) {
-      throw new Error(`Failed to check existence in ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to check existence in ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -197,12 +213,12 @@ export abstract class SupabaseRepository<T extends { id: string }>
       const { count, error } = await query;
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return count || 0;
     } catch (error) {
-      throw new Error(`Failed to count ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to count ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 }
@@ -234,12 +250,12 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
         if (error.code === 'PGRST116') { // Not found
           return { some: false, value: undefined };
         }
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return { some: true, value: data as T };
     } catch (error) {
-      throw new Error(`Failed to find one ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to find one ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -261,7 +277,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply options
       if (options?.orderBy) {
-        options.orderBy.forEach(order => {
+        options.orderBy.forEach((order: { field: string; direction: 'asc' | 'desc' }) => {
           query = query.order(order.field, { ascending: order.direction === 'asc' });
         });
       }
@@ -277,12 +293,12 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return (data || []) as T[];
     } catch (error) {
-      throw new Error(`Failed to find many ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to find many ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -315,7 +331,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
         },
       };
     } catch (error) {
-      throw new Error(`Failed to paginate ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to paginate ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -329,7 +345,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
-        const searchConditions = query.fields.map(field =>
+        const searchConditions = query.fields.map((field: string) =>
           `${field}.ilike.%${query.query}%`
         );
         // Note: This is a simplified implementation. Real full-text search would be more complex
@@ -353,7 +369,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       const { data, error, count } = await dbQuery;
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return {
@@ -361,7 +377,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
         total: count || 0,
       };
     } catch (error) {
-      throw new Error(`Failed to search ${this.tableName}: ${error.message}`);
+      throw new Error(`Failed to search ${this.tableName}: ${getErrorMessage(error)}`);
     }
   }
 }
@@ -404,7 +420,7 @@ export class SupabaseChatRepository
         .insert(messageWithSessionId);
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       // Update session last activity
@@ -415,7 +431,7 @@ export class SupabaseChatRepository
         .eq('id', sessionId);
 
     } catch (error) {
-      throw new Error(`Failed to save message: ${error.message}`);
+      throw new Error(`Failed to save message: ${getErrorMessage(error)}`);
     }
   }
 
@@ -451,12 +467,12 @@ export class SupabaseChatRepository
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return (data || []) as ChatMessage[];
     } catch (error) {
-      throw new Error(`Failed to get conversation history: ${error.message}`);
+      throw new Error(`Failed to get conversation history: ${getErrorMessage(error)}`);
     }
   }
 }
@@ -499,12 +515,12 @@ export class SupabaseBookingRepository
         .or(`and(checkInDate.lt.${checkOut.toISOString()},checkOutDate.gt.${checkIn.toISOString()})`);
 
       if (error) {
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
       return (data || []) as Booking[];
     } catch (error) {
-      throw new Error(`Failed to find conflicting bookings: ${error.message}`);
+      throw new Error(`Failed to find conflicting bookings: ${getErrorMessage(error)}`);
     }
   }
 
@@ -536,7 +552,7 @@ export class SupabaseUserRepository
   }
 
   async updateLastLogin(id: string): Promise<Option<User>> {
-    return this.update(id, { lastLogin: new Date() });
+    return this.update(id, { lastLoginAt: new Date() } as any);
   }
 }
 
@@ -585,7 +601,7 @@ export class SupabaseDocumentRepository
         orderBy: [{ field: 'createdAt', direction: 'desc' }]
       });
     } catch (error) {
-      throw new Error(`Failed to find similar documents: ${error.message}`);
+      throw new Error(`Failed to find similar documents: ${getErrorMessage(error)}`);
     }
   }
 }
