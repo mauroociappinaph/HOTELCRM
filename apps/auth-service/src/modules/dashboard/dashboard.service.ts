@@ -78,74 +78,66 @@ export class DashboardService {
   }
 
   /**
-   * Get real dashboard statistics from database
-   * This would be used in production with actual queries
+   * Get real dashboard statistics from database with optimized queries
+   * Uses single query approach to avoid N+1 problems
    */
   private async getRealDashboardStats(agencyId: string): Promise<DashboardStatsDto> {
     const client = this.supabaseService.getClient();
 
-    // Example queries (would be uncommented in production)
-    /*
-    // Total bookings
-    const { count: totalBookings } = await client
+    // Optimized: Single query to get all booking statistics
+    const { data: bookingStats, error: bookingError } = await client
       .from('bookings')
-      .select('*', { count: 'exact', head: true })
+      .select(`
+        total_amount,
+        payment_status,
+        start_date,
+        agency_id
+      `)
       .eq('agency_id', agencyId);
 
-    // Total clients
-    const { count: totalClients } = await client
+    if (bookingError) {
+      this.logger.error('Error fetching booking stats:', bookingError);
+      throw bookingError;
+    }
+
+    // Calculate statistics from booking data
+    const bookings = bookingStats || [];
+    const totalBookings = bookings.length;
+    const totalRevenue = bookings
+      .filter(b => b.payment_status === 'paid')
+      .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+    const pendingPayments = bookings.filter(b => b.payment_status === 'pending').length;
+
+    // Upcoming bookings (next 30 days) - optimized with date filtering
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const upcomingBookings = bookings.filter(b => {
+      if (!b.start_date) return false;
+      const startDate = new Date(b.start_date);
+      return startDate >= new Date() && startDate <= thirtyDaysFromNow;
+    }).length;
+
+    // Total clients - single optimized query
+    const { count: totalClients, error: clientError } = await client
       .from('clients')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', agencyId);
 
-    // Total revenue
-    const { data: revenueData } = await client
-      .from('bookings')
-      .select('total_amount')
-      .eq('agency_id', agencyId)
-      .eq('payment_status', 'paid');
+    if (clientError) {
+      this.logger.error('Error fetching client count:', clientError);
+      throw clientError;
+    }
 
-    const totalRevenue = revenueData?.reduce((sum, booking) => sum + booking.total_amount, 0) ?? 0;
-
-    // Pending payments
-    const { count: pendingPayments } = await client
-      .from('bookings')
-      .select('*', { count: 'exact', head: true })
-      .eq('agency_id', agencyId)
-      .eq('payment_status', 'pending');
-
-    // Upcoming bookings (next 30 days)
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    const { count: upcomingBookings } = await client
-      .from('bookings')
-      .select('*', { count: 'exact', head: true })
-      .eq('agency_id', agencyId)
-      .gte('start_date', new Date().toISOString())
-      .lte('start_date', thirtyDaysFromNow.toISOString());
-
-    // Average booking value
-    const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+    // Calculate average booking value
+    const averageBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
 
     return new DashboardStatsDto({
-      totalBookings: totalBookings ?? 0,
+      totalBookings,
       totalClients: totalClients ?? 0,
       totalRevenue,
-      pendingPayments: pendingPayments ?? 0,
-      upcomingBookings: upcomingBookings ?? 0,
-      averageBookingValue: Math.round(averageBookingValue),
-    });
-    */
-
-    // Return mock data for demo
-    return new DashboardStatsDto({
-      totalBookings: 45,
-      totalClients: 23,
-      totalRevenue: 125000,
-      pendingPayments: 3,
-      upcomingBookings: 8,
-      averageBookingValue: 2778,
+      pendingPayments,
+      upcomingBookings,
+      averageBookingValue,
     });
   }
 }
