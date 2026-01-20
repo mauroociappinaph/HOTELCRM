@@ -6,6 +6,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthModule } from './modules/health/health.module';
 import { SecurityModule } from './modules/security/security.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
 
 /**
  * Módulo raíz del microservicio de autenticación.
@@ -23,6 +24,7 @@ import { SecurityModule } from './modules/security/security.module';
     PaymentsModule,
     HealthModule,
     SecurityModule,
+    MonitoringModule,
   ],
 })
 export class AppModule {}
