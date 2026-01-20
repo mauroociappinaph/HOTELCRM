@@ -383,13 +383,13 @@ export class StripeService {
         plan_id: plan.id,
         stripe_subscription_id: subscription.id,
         status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000),
-        current_period_end: new Date(subscription.current_period_end * 1000),
-        trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-        cancel_at: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-        canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-        ended_at: subscription.ended_at ? new Date(subscription.ended_at * 1000) : null,
+        current_period_start: new Date((subscription as any).current_period_start * 1000),
+        current_period_end: new Date((subscription as any).current_period_end * 1000),
+        trial_start: subscription.trial_start ? new Date((subscription as any).trial_start * 1000) : null,
+        trial_end: subscription.trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+        cancel_at: (subscription as any).cancel_at ? new Date((subscription as any).cancel_at * 1000) : null,
+        canceled_at: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000) : null,
+        ended_at: (subscription as any).ended_at ? new Date((subscription as any).ended_at * 1000) : null,
       };
 
       const { error } = await client
@@ -457,11 +457,11 @@ export class StripeService {
       };
 
       // Link to subscription and user if possible
-      if (invoice.subscription) {
+      if ((invoice as any).subscription) {
         const { data: subscription } = await client
           .from('subscriptions')
           .select('user_id, agency_id, stripe_customer_id, id')
-          .eq('stripe_subscription_id', invoice.subscription as string)
+          .eq('stripe_subscription_id', (invoice as any).subscription as string)
           .single();
 
         if (subscription) {
