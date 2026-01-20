@@ -36,4 +36,9 @@ export type {
   PaginatedResult,
   SearchQuery,
   SearchResult,
+  ConversationOptions,
+  BaseEntity,
+  ChatSession,
+  ChatMessage,
+  Document,
 } from './types/repository.types';
