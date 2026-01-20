@@ -43,7 +43,8 @@ export class EnvironmentValidation {
     }
 
     if (missing.length > 0) {
-      const errorMsg = `❌ Missing required environment variables: ${missing.join(', ')}\n` +
+      const errorMsg =
+        `❌ Missing required environment variables: ${missing.join(', ')}\n` +
         'Please check your .env file and ensure all required variables are set.';
       this.logger.error(errorMsg);
       throw new Error(errorMsg);
@@ -131,7 +132,10 @@ export class EnvironmentValidation {
       // For now, just log that validation is recommended
       this.logger.log('ℹ️  Database connection validation recommended for production');
     } catch (error) {
-      this.logger.warn('⚠️  Database connection validation failed:', error instanceof Error ? error.message : String(error));
+      this.logger.warn(
+        '⚠️  Database connection validation failed:',
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -156,7 +160,6 @@ export class EnvironmentValidation {
       await this.validateDatabaseConnection();
 
       this.logger.log('🎉 Environment validation completed successfully');
-
     } catch (error) {
       this.logger.error('💥 Environment validation failed');
       throw error;
@@ -167,20 +170,18 @@ export class EnvironmentValidation {
    * Get validation summary for logging/debugging
    */
   static getValidationSummary(): Record<string, any> {
-    const summary = {
+    return {
       required: {
         total: this.REQUIRED_VARS.length,
-        present: this.REQUIRED_VARS.filter(v => process.env[v]).length,
-        missing: this.REQUIRED_VARS.filter(v => !process.env[v]),
+        present: this.REQUIRED_VARS.filter((v) => process.env[v]).length,
+        missing: this.REQUIRED_VARS.filter((v) => !process.env[v]),
       },
       recommended: {
         total: this.RECOMMENDED_VARS.length,
-        present: this.RECOMMENDED_VARS.filter(v => process.env[v]).length,
-        missing: this.RECOMMENDED_VARS.filter(v => !process.env[v]),
+        present: this.RECOMMENDED_VARS.filter((v) => process.env[v]).length,
+        missing: this.RECOMMENDED_VARS.filter((v) => !process.env[v]),
       },
       timestamp: new Date().toISOString(),
     };
-
-    return summary;
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 export interface EpisodicMemory {
@@ -84,7 +85,9 @@ export class MemoryManagerService {
   /**
    * Store episodic memory (conversation/task history)
    */
-  async storeEpisodicMemory(memory: Omit<EpisodicMemory, 'id' | 'consolidationCount' | 'lastAccessed' | 'accessCount'>): Promise<string> {
+  async storeEpisodicMemory(
+    memory: Omit<EpisodicMemory, 'id' | 'consolidationCount' | 'lastAccessed' | 'accessCount'>,
+  ): Promise<string> {
     try {
       const client = this.supabaseService.getClient();
 
@@ -117,7 +120,9 @@ export class MemoryManagerService {
   /**
    * Store or update semantic memory (factual knowledge)
    */
-  async storeSemanticMemory(memory: Omit<SemanticMemory, 'id' | 'lastUpdated' | 'accessCount'>): Promise<string> {
+  async storeSemanticMemory(
+    memory: Omit<SemanticMemory, 'id' | 'lastUpdated' | 'accessCount'>,
+  ): Promise<string> {
     try {
       const client = this.supabaseService.getClient();
 
@@ -177,7 +182,9 @@ export class MemoryManagerService {
   /**
    * Store procedural memory (task patterns and procedures)
    */
-  async storeProceduralMemory(memory: Omit<ProceduralMemory, 'id' | 'lastUsed' | 'usageCount'>): Promise<string> {
+  async storeProceduralMemory(
+    memory: Omit<ProceduralMemory, 'id' | 'lastUsed' | 'usageCount'>,
+  ): Promise<string> {
     try {
       const client = this.supabaseService.getClient();
 
@@ -269,7 +276,10 @@ export class MemoryManagerService {
         await client
           .from('episodic_memories')
           .delete()
-          .in('id', episodicToForget.map(m => m.id));
+          .in(
+            'id',
+            episodicToForget.map((m) => m.id),
+          );
 
         this.logger.log(`Forgot ${episodicToForget.length} low-importance episodic memories`);
       }
@@ -285,11 +295,13 @@ export class MemoryManagerService {
         await client
           .from('semantic_memories')
           .delete()
-          .in('id', semanticToForget.map(m => m.id));
+          .in(
+            'id',
+            semanticToForget.map((m) => m.id),
+          );
 
         this.logger.log(`Forgot ${semanticToForget.length} low-confidence semantic memories`);
       }
-
     } catch (error) {
       this.logger.error('Error applying selective forgetting:', error);
       throw error;
@@ -313,33 +325,42 @@ export class MemoryManagerService {
         .select('importance, access_count')
         .eq('user_id', userId);
 
-      const episodicStats = episodicData ? {
-        count: episodicData.length,
-        avgImportance: episodicData.reduce((sum, m) => sum + m.importance, 0) / episodicData.length,
-        totalAccesses: episodicData.reduce((sum, m) => sum + m.access_count, 0),
-      } : { count: 0, avgImportance: 0, totalAccesses: 0 };
+      const episodicStats = episodicData
+        ? {
+            count: episodicData.length,
+            avgImportance:
+              episodicData.reduce((sum, m) => sum + m.importance, 0) / episodicData.length,
+            totalAccesses: episodicData.reduce((sum, m) => sum + m.access_count, 0),
+          }
+        : { count: 0, avgImportance: 0, totalAccesses: 0 };
 
       // Semantic stats
       const { data: semanticData } = await client
         .from('semantic_memories')
         .select('confidence, access_count');
 
-      const semanticStats = semanticData ? {
-        count: semanticData.length,
-        avgConfidence: semanticData.reduce((sum, m) => sum + m.confidence, 0) / semanticData.length,
-        totalAccesses: semanticData.reduce((sum, m) => sum + m.access_count, 0),
-      } : { count: 0, avgConfidence: 0, totalAccesses: 0 };
+      const semanticStats = semanticData
+        ? {
+            count: semanticData.length,
+            avgConfidence:
+              semanticData.reduce((sum, m) => sum + m.confidence, 0) / semanticData.length,
+            totalAccesses: semanticData.reduce((sum, m) => sum + m.access_count, 0),
+          }
+        : { count: 0, avgConfidence: 0, totalAccesses: 0 };
 
       // Procedural stats
       const { data: proceduralData } = await client
         .from('procedural_memories')
         .select('success_rate, usage_count');
 
-      const proceduralStats = proceduralData ? {
-        count: proceduralData.length,
-        avgSuccessRate: proceduralData.reduce((sum, m) => sum + m.success_rate, 0) / proceduralData.length,
-        totalUsage: proceduralData.reduce((sum, m) => sum + m.usage_count, 0),
-      } : { count: 0, avgSuccessRate: 0, totalUsage: 0 };
+      const proceduralStats = proceduralData
+        ? {
+            count: proceduralData.length,
+            avgSuccessRate:
+              proceduralData.reduce((sum, m) => sum + m.success_rate, 0) / proceduralData.length,
+            totalUsage: proceduralData.reduce((sum, m) => sum + m.usage_count, 0),
+          }
+        : { count: 0, avgSuccessRate: 0, totalUsage: 0 };
 
       return {
         episodic: episodicStats,
@@ -373,7 +394,7 @@ export class MemoryManagerService {
     const { data, error } = await dbQuery;
     if (error) throw error;
 
-    return (data || []).map(memory => ({
+    return (data || []).map((memory) => ({
       type: 'episodic' as const,
       content: memory,
       relevanceScore: this.calculateEpisodicRelevance(memory, query.query),
@@ -401,7 +422,7 @@ export class MemoryManagerService {
         recencyScore: this.calculateRecencyScore(memory.lastUpdated),
         importanceScore: memory.confidence,
       }))
-      .filter(result => result.relevanceScore >= (query.minRelevance || 0.3));
+      .filter((result) => result.relevanceScore >= (query.minRelevance || 0.3));
   }
 
   private async queryProceduralMemories(query: MemoryQuery): Promise<MemoryResult[]> {
@@ -417,7 +438,7 @@ export class MemoryManagerService {
 
     if (error) throw error;
 
-    return (data || []).map(memory => ({
+    return (data || []).map((memory) => ({
       type: 'procedural',
       content: memory,
       relevanceScore: memory.successRate,
@@ -456,7 +477,10 @@ export class MemoryManagerService {
     await client
       .from('episodic_memories')
       .update({ consolidationCount: this.consolidationThreshold })
-      .in('id', memoriesToConsolidate.map(m => m.id));
+      .in(
+        'id',
+        memoriesToConsolidate.map((m) => m.id),
+      );
   }
 
   private async extractSemanticFromEpisodic(userId: string): Promise<void> {
@@ -546,7 +570,7 @@ export class MemoryManagerService {
 
   private mergeRelationships(
     existing: SemanticMemory['relationships'],
-    newRelationships: SemanticMemory['relationships']
+    newRelationships: SemanticMemory['relationships'],
   ): SemanticMemory['relationships'] {
     const merged = new Map<string, any>();
 
@@ -602,12 +626,14 @@ export class MemoryManagerService {
     return Array.from(patterns.values());
   }
 
-  private extractSemanticKnowledge(interactions: any[]): Array<Omit<SemanticMemory, 'id' | 'lastUpdated' | 'accessCount'>> {
+  private extractSemanticKnowledge(
+    interactions: any[],
+  ): Array<Omit<SemanticMemory, 'id' | 'lastUpdated' | 'accessCount'>> {
     // Extract user preferences and behavior patterns
     const knowledge: Array<Omit<SemanticMemory, 'id' | 'lastUpdated' | 'accessCount'>> = [];
 
     // Example: Extract preferred communication style
-    const communicationPatterns = interactions.filter(i => i.interaction_type === 'conversation');
+    const communicationPatterns = interactions.filter((i) => i.interaction_type === 'conversation');
     if (communicationPatterns.length > 5) {
       knowledge.push({
         concept: 'Communication Preferences',
@@ -653,7 +679,8 @@ export class MemoryManagerService {
     }> = [];
 
     for (const [taskType, taskMemories] of taskGroups) {
-      if (taskMemories.length >= 3) { // Need at least 3 examples
+      if (taskMemories.length >= 3) {
+        // Need at least 3 examples
         patterns.push({
           taskType,
           pattern: `Successful ${taskType} execution pattern`,

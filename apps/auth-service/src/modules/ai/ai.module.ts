@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
+
+import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
+import { ContextManagerModule } from '../context-manager/context-manager.module';
+
 import { ChatService } from './chat.service';
 import { EmbeddingsService } from './embeddings.service';
 import { AiController } from './ai.controller';
-import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
 
 @Module({
-  imports: [SupabaseModule],
+  imports: [SupabaseModule, ContextManagerModule],
   controllers: [AiController],
   providers: [ChatService, EmbeddingsService],
   exports: [ChatService, EmbeddingsService],

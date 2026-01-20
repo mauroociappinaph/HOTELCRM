@@ -93,7 +93,7 @@ export class SchemaValidatorService {
     data: any,
     path: string,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    warnings: ValidationWarning[],
   ): void {
     // Type validation
     if (schema.type && typeof data !== schema.type) {

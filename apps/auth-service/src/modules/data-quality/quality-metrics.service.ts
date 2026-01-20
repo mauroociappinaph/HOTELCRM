@@ -30,11 +30,14 @@ export interface QualityReport {
     end: Date;
   };
   overallScore: number;
-  categoryBreakdown: Record<string, {
-    score: number;
-    metricsCount: number;
-    failingMetrics: string[];
-  }>;
+  categoryBreakdown: Record<
+    string,
+    {
+      score: number;
+      metricsCount: number;
+      failingMetrics: string[];
+    }
+  >;
   topIssues: Array<{
     metricId: string;
     name: string;
@@ -107,9 +110,12 @@ export class QualityMetricsService {
 
     // Log significant deviations from target
     const deviation = Math.abs(value - definition.target) / definition.target;
-    if (deviation > 0.1) { // More than 10% deviation
+    if (deviation > 0.1) {
+      // More than 10% deviation
       const direction = value > definition.target ? 'above' : 'below';
-      this.logger.warn(`⚠️ Quality metric alert: ${definition.name} is ${deviation.toFixed(2)} ${direction} target (${value} vs ${definition.target})`);
+      this.logger.warn(
+        `⚠️ Quality metric alert: ${definition.name} is ${deviation.toFixed(2)} ${direction} target (${value} vs ${definition.target})`,
+      );
     }
   }
 
@@ -164,9 +170,10 @@ export class QualityMetricsService {
 
     // Overall score is weighted average of categories
     const categories = Object.keys(categoryScores);
-    const overallScore = categories.length > 0
-      ? categories.reduce((sum, cat) => sum + categoryScores[cat], 0) / categories.length
-      : 0;
+    const overallScore =
+      categories.length > 0
+        ? categories.reduce((sum, cat) => sum + categoryScores[cat], 0) / categories.length
+        : 0;
 
     return {
       overallScore: Math.round(overallScore * 100) / 100,
@@ -183,7 +190,7 @@ export class QualityMetricsService {
   generateQualityReport(
     title: string = 'Data Quality Report',
     description: string = 'Comprehensive data quality assessment',
-    daysBack: number = 30
+    daysBack: number = 30,
   ): QualityReport {
     const endDate = new Date();
     const startDate = new Date();
@@ -196,11 +203,14 @@ export class QualityMetricsService {
     const qualityScore = this.calculateQualityScore();
 
     // Group by category
-    const categoryBreakdown: Record<string, {
-      score: number;
-      metricsCount: number;
-      failingMetrics: string[];
-    }> = {};
+    const categoryBreakdown: Record<
+      string,
+      {
+        score: number;
+        metricsCount: number;
+        failingMetrics: string[];
+      }
+    > = {};
 
     const categoryMetrics = new Map<string, QualityMetric[]>();
     for (const metric of relevantMetrics) {
@@ -214,8 +224,8 @@ export class QualityMetricsService {
     for (const [category, metrics] of categoryMetrics) {
       const categoryScore = this.calculateCategoryScore(metrics);
       const failingMetrics = metrics
-        .filter(m => m.value < m.target * 0.9) // Below 90% of target
-        .map(m => m.name);
+        .filter((m) => m.value < m.target * 0.9) // Below 90% of target
+        .map((m) => m.name);
 
       categoryBreakdown[category] = {
         score: Math.round(categoryScore * 100) / 100,
@@ -226,14 +236,14 @@ export class QualityMetricsService {
 
     // Find top issues
     const topIssues = relevantMetrics
-      .map(metric => ({
+      .map((metric) => ({
         metricId: metric.metricId,
         name: metric.name,
         currentValue: metric.value,
         target: metric.target,
         gap: metric.target - metric.value,
       }))
-      .filter(issue => issue.gap > 0)
+      .filter((issue) => issue.gap > 0)
       .sort((a, b) => b.gap - a.gap)
       .slice(0, 10);
 
@@ -383,21 +393,24 @@ export class QualityMetricsService {
   updateMetricsFromGateResults(gateResults: any[]): void {
     // Schema compliance
     const totalRecords = gateResults.length;
-    const schemaCompliant = gateResults.filter(r => r.checks?.schemaValidation?.isValid !== false).length;
+    const schemaCompliant = gateResults.filter(
+      (r) => r.checks?.schemaValidation?.isValid !== false,
+    ).length;
     const schemaComplianceRate = totalRecords > 0 ? (schemaCompliant / totalRecords) * 100 : 100;
 
     this.recordMetricValue('schema-compliance', schemaComplianceRate);
 
     // Business rule compliance
-    const businessRulesCompliant = gateResults.filter(r =>
-      r.checks?.businessRulesValidation?.overallResult !== false
+    const businessRulesCompliant = gateResults.filter(
+      (r) => r.checks?.businessRulesValidation?.overallResult !== false,
     ).length;
-    const businessRulesComplianceRate = totalRecords > 0 ? (businessRulesCompliant / totalRecords) * 100 : 100;
+    const businessRulesComplianceRate =
+      totalRecords > 0 ? (businessRulesCompliant / totalRecords) * 100 : 100;
 
     this.recordMetricValue('business-rule-compliance', businessRulesComplianceRate);
 
     // Late arrival rate (from event time analysis)
-    const lateRecords = gateResults.filter(r => r.rejectedReason?.includes('late')).length;
+    const lateRecords = gateResults.filter((r) => r.rejectedReason?.includes('late')).length;
     const lateArrivalRate = totalRecords > 0 ? (lateRecords / totalRecords) * 100 : 0;
 
     this.recordMetricValue('late-arrival-rate', lateArrivalRate);
@@ -410,14 +423,12 @@ export class QualityMetricsService {
     if (metrics.length === 0) return 0;
 
     // Weighted average based on how close each metric is to its target
-    const weightedScores = metrics.map(metric => {
+    const weightedScores = metrics.map((metric) => {
       const distance = Math.abs(metric.value - metric.target);
       const maxDistance = Math.max(metric.target, Math.abs(metric.value - metric.target));
 
       // Score from 0-1, where 1 means exactly on target
-      const score = maxDistance === 0 ? 1 : Math.max(0, 1 - (distance / maxDistance));
-
-      return score;
+      return maxDistance === 0 ? 1 : Math.max(0, 1 - distance / maxDistance);
     });
 
     return weightedScores.reduce((sum, score) => sum + score, 0) / weightedScores.length;
@@ -471,17 +482,29 @@ export class QualityMetricsService {
    * Generate recommendations based on issues
    */
   private generateRecommendations(
-    topIssues: Array<{ metricId: string; name: string; currentValue: number; target: number; gap: number }>,
-    categoryBreakdown: Record<string, { score: number; metricsCount: number; failingMetrics: string[] }>
+    topIssues: Array<{
+      metricId: string;
+      name: string;
+      currentValue: number;
+      target: number;
+      gap: number;
+    }>,
+    categoryBreakdown: Record<
+      string,
+      { score: number; metricsCount: number; failingMetrics: string[] }
+    >,
   ): string[] {
     const recommendations: string[] = [];
 
     // General recommendations based on overall score
-    const overallScore = Object.values(categoryBreakdown).reduce((sum, cat) => sum + cat.score, 0) /
-                        Object.keys(categoryBreakdown).length;
+    const overallScore =
+      Object.values(categoryBreakdown).reduce((sum, cat) => sum + cat.score, 0) /
+      Object.keys(categoryBreakdown).length;
 
     if (overallScore < 0.8) {
-      recommendations.push('Overall data quality is below acceptable levels. Implement immediate data quality improvement measures.');
+      recommendations.push(
+        'Overall data quality is below acceptable levels. Implement immediate data quality improvement measures.',
+      );
     }
 
     // Category-specific recommendations
@@ -489,19 +512,29 @@ export class QualityMetricsService {
       if (breakdown.score < 0.85) {
         switch (category) {
           case 'accuracy':
-            recommendations.push('Improve data accuracy by implementing stricter validation rules and data profiling.');
+            recommendations.push(
+              'Improve data accuracy by implementing stricter validation rules and data profiling.',
+            );
             break;
           case 'completeness':
-            recommendations.push('Address data completeness issues by making required fields mandatory and providing better data collection forms.');
+            recommendations.push(
+              'Address data completeness issues by making required fields mandatory and providing better data collection forms.',
+            );
             break;
           case 'consistency':
-            recommendations.push('Fix data consistency problems by implementing cross-table validation and referential integrity checks.');
+            recommendations.push(
+              'Fix data consistency problems by implementing cross-table validation and referential integrity checks.',
+            );
             break;
           case 'timeliness':
-            recommendations.push('Improve data timeliness by optimizing data pipelines and reducing processing latency.');
+            recommendations.push(
+              'Improve data timeliness by optimizing data pipelines and reducing processing latency.',
+            );
             break;
           case 'validity':
-            recommendations.push('Enhance data validity by updating schemas and business rules to reflect current requirements.');
+            recommendations.push(
+              'Enhance data validity by updating schemas and business rules to reflect current requirements.',
+            );
             break;
         }
       }
@@ -510,9 +543,13 @@ export class QualityMetricsService {
     // Specific recommendations for failing metrics
     for (const issue of topIssues.slice(0, 3)) {
       if (issue.metricId.includes('schema')) {
-        recommendations.push(`Update data schemas and validation rules to address ${issue.name} issues.`);
+        recommendations.push(
+          `Update data schemas and validation rules to address ${issue.name} issues.`,
+        );
       } else if (issue.metricId.includes('business-rule')) {
-        recommendations.push(`Review and update business rules to improve ${issue.name} compliance.`);
+        recommendations.push(
+          `Review and update business rules to improve ${issue.name} compliance.`,
+        );
       } else if (issue.metricId.includes('freshness')) {
         recommendations.push('Optimize data pipelines to reduce data freshness issues.');
       }
@@ -536,19 +573,21 @@ export class QualityMetricsService {
   /**
    * Get metric statistics
    */
-  getMetricStatistics(metricId: string): {
-    current: QualityMetric | undefined;
-    average: number;
-    min: number;
-    max: number;
-    trend: 'improving' | 'declining' | 'stable';
-    dataPoints: number;
-  } | undefined {
+  getMetricStatistics(metricId: string):
+    | {
+        current: QualityMetric | undefined;
+        average: number;
+        min: number;
+        max: number;
+        trend: 'improving' | 'declining' | 'stable';
+        dataPoints: number;
+      }
+    | undefined {
     const values = this.metrics.get(metricId);
     if (!values || values.length === 0) return undefined;
 
     const current = values[values.length - 1];
-    const numericValues = values.map(v => v.value);
+    const numericValues = values.map((v) => v.value);
 
     return {
       current,

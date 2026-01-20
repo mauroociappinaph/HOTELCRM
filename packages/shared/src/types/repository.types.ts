@@ -6,7 +6,9 @@
 import { Option, Result } from './advanced-utils.types';
 import { Booking, BookingStatus } from './booking.types';
 import { User, UserRole } from './user.types';
-import { Agency, Client, Payment } from './index';
+import { Agency } from './agency.types';
+import { Client } from './client.types';
+import { Payment } from './payments.types';
 
 /**
  * Base repository interface with CRUD operations

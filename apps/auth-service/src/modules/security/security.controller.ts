@@ -9,10 +9,12 @@ import {
   UseGuards,
   Request,
   HttpStatus,
-  HttpCode
+  HttpCode,
 } from '@nestjs/common';
-import { SecurityService, SecurityUser, SecurityAlert } from './security.service';
+
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+
+import { SecurityService, SecurityUser, SecurityAlert } from './security.service';
 
 @Controller('security')
 @UseGuards(SupabaseAuthGuard)
@@ -24,7 +26,7 @@ export class SecurityController {
   @HttpCode(HttpStatus.CREATED)
   async createAdminUser(
     @Body() body: { email: string; name: string },
-    @Request() req: any
+    @Request() req: any,
   ): Promise<SecurityUser> {
     // TODO: Add additional authorization check to ensure only system admins can create admin users
     return this.securityService.createAdminUser(body.email, body.name);
@@ -52,14 +54,15 @@ export class SecurityController {
   // Get security events with filtering
   @Get('events')
   async getSecurityEvents(
-    @Query() query: {
+    @Query()
+    query: {
       limit?: string;
       offset?: string;
       severity?: string;
       event_type?: string;
       date_from?: string;
       date_to?: string;
-    }
+    },
   ): Promise<any[]> {
     return this.securityService.getSecurityEvents({
       limit: query.limit ? parseInt(query.limit) : 50,
@@ -67,7 +70,7 @@ export class SecurityController {
       severity: query.severity,
       event_type: query.event_type,
       date_from: query.date_from,
-      date_to: query.date_to
+      date_to: query.date_to,
     });
   }
 
@@ -83,7 +86,7 @@ export class SecurityController {
   async updateAlertStatus(
     @Param('id') alertId: string,
     @Body() body: { status: string },
-    @Request() req: any
+    @Request() req: any,
   ): Promise<void> {
     const userId = req.user?.id || 'system';
     await this.securityService.updateAlertStatus(alertId, body.status, userId);
@@ -95,7 +98,7 @@ export class SecurityController {
       resource_type: 'security_alert',
       resource_id: alertId,
       details: { new_status: body.status },
-      ip_address: req.ip
+      ip_address: req.ip,
     });
   }
 
@@ -113,8 +116,8 @@ export class SecurityController {
       created_at: new Date().toISOString(),
       metadata: {
         test: true,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
 
     await this.securityService.sendAlertNotification(testAlert);
@@ -125,7 +128,7 @@ export class SecurityController {
       action_type: 'test_alert_sent',
       resource_type: 'notification_system',
       details: { alert_type: 'test' },
-      ip_address: req.ip
+      ip_address: req.ip,
     });
 
     return { message: 'Test alert sent successfully' };
@@ -148,25 +151,25 @@ export class SecurityController {
       alert_thresholds: {
         attack_attempts_per_hour: 10,
         rate_limit_hits_per_minute: 5,
-        circuit_breaker_trips_per_hour: 3
+        circuit_breaker_trips_per_hour: 3,
       },
       rate_limits: {
         window_ms: 900000, // 15 minutes
         max_requests: 100,
-        block_duration: 3600000 // 1 hour
+        block_duration: 3600000, // 1 hour
       },
       circuit_breaker_config: {
         failure_threshold: 10,
         success_threshold: 3,
-        timeout_ms: 60000
+        timeout_ms: 60000,
       },
       attack_patterns_detected: [
         'rsc_deserialization',
         'flight_protocol_abuse',
         'malicious_payloads',
         'suspicious_headers',
-        'sql_injection'
-      ]
+        'sql_injection',
+      ],
     };
   }
 
@@ -188,7 +191,7 @@ export class SecurityController {
       resource_type: 'security_system',
       resource_id: scanId,
       details: { scan_type: 'manual' },
-      ip_address: req.ip
+      ip_address: req.ip,
     });
 
     // TODO: Implement actual security scanning logic
@@ -206,9 +209,9 @@ export class SecurityController {
         'Rate limiting configured correctly',
         'Circuit breaker operational',
         'Attack patterns detection active',
-        'Security logging enabled'
+        'Security logging enabled',
       ],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

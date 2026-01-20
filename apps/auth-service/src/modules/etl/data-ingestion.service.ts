@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 export interface DataSource {
@@ -37,7 +38,10 @@ export class DataIngestionService {
   /**
    * Ingest data from database
    */
-  private async ingestFromDatabase(source: DataSource, filters?: Record<string, any>): Promise<any[]> {
+  private async ingestFromDatabase(
+    source: DataSource,
+    filters?: Record<string, any>,
+  ): Promise<any[]> {
     const client = this.supabaseService.getClient();
 
     if (!source.tableName) {
@@ -92,7 +96,6 @@ export class DataIngestionService {
 
       this.logger.log(`🌐 Ingested ${records.length} records from API: ${source.apiEndpoint}`);
       return records;
-
     } catch (error) {
       this.logger.error(`API ingestion error for endpoint ${source.apiEndpoint}:`, error);
       throw error;
@@ -115,7 +118,10 @@ export class DataIngestionService {
   /**
    * Ingest data from stream
    */
-  private async ingestFromStream(source: DataSource, filters?: Record<string, any>): Promise<any[]> {
+  private async ingestFromStream(
+    source: DataSource,
+    filters?: Record<string, any>,
+  ): Promise<any[]> {
     if (!source.streamTopic) {
       throw new Error('Stream topic is required for stream ingestion');
     }

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { ContextChunk, OptimizedContext } from './context-assembler.service';
 
 export interface OptimizationStrategy {
@@ -93,7 +94,7 @@ export class ContextOptimizerService {
   async optimizeContext(
     chunks: ContextChunk[],
     targetTokens: number,
-    strategies: Partial<OptimizationStrategy>[] = []
+    strategies: Partial<OptimizationStrategy>[] = [],
   ): Promise<OptimizedContext> {
     const startTime = Date.now();
     const originalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
@@ -107,7 +108,7 @@ export class ContextOptimizerService {
     let totalChunksCompressed = 0;
 
     // Apply strategies in priority order
-    for (const strategy of activeStrategies.filter(s => s.isEnabled)) {
+    for (const strategy of activeStrategies.filter((s) => s.isEnabled)) {
       try {
         const result = await this.applyStrategy(strategy, optimizedChunks, targetTokens);
         optimizedChunks = result.chunks;
@@ -118,7 +119,9 @@ export class ContextOptimizerService {
           totalChunksCompressed += result.chunksCompressed;
         }
 
-        this.logger.debug(`Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`);
+        this.logger.debug(
+          `Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`,
+        );
       } catch (error) {
         this.logger.warn(`Strategy ${strategy.name} failed:`, error);
         // Continue with other strategies
@@ -158,7 +161,7 @@ export class ContextOptimizerService {
   private async applyStrategy(
     strategy: OptimizationStrategy,
     chunks: ContextChunk[],
-    targetTokens: number
+    targetTokens: number,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
@@ -190,7 +193,7 @@ export class ContextOptimizerService {
    */
   private async applyRedundancyElimination(
     chunks: ContextChunk[],
-    config: any
+    config: any,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
@@ -210,10 +213,14 @@ export class ContextOptimizerService {
         const relevance = chunk.relevanceScore;
 
         // Calculate redundancy with already selected chunks
-        const redundancy = selected.length > 0
-          ? Math.max(...selected.map(selectedChunk =>
-              this.calculateSemanticSimilarity(chunk, selectedChunk)))
-          : 0;
+        const redundancy =
+          selected.length > 0
+            ? Math.max(
+                ...selected.map((selectedChunk) =>
+                  this.calculateSemanticSimilarity(chunk, selectedChunk),
+                ),
+              )
+            : 0;
 
         // MMR score: balance relevance vs diversity
         const mmrScore = config.relevanceWeight * relevance - config.redundancyWeight * redundancy;
@@ -240,18 +247,19 @@ export class ContextOptimizerService {
    */
   private async applyTemporalFiltering(
     chunks: ContextChunk[],
-    config: any
+    config: any,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
     chunksCompressed: number;
   }> {
     const now = Date.now();
-    const filteredChunks = chunks.map(chunk => ({
+    const filteredChunks = chunks.map((chunk) => ({
       ...chunk,
       temporalScore: this.calculateTemporalScore(chunk.timestamp, now, config),
-      combinedScore: chunk.relevanceScore * (1 - config.recencyWeight) +
-                    this.calculateTemporalScore(chunk.timestamp, now, config) * config.recencyWeight,
+      combinedScore:
+        chunk.relevanceScore * (1 - config.recencyWeight) +
+        this.calculateTemporalScore(chunk.timestamp, now, config) * config.recencyWeight,
     }));
 
     // Sort by combined score and keep top chunks
@@ -270,13 +278,13 @@ export class ContextOptimizerService {
    */
   private async applyRelevanceBoosting(
     chunks: ContextChunk[],
-    config: any
+    config: any,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
     chunksCompressed: number;
   }> {
-    const processedChunks = chunks.map(chunk => {
+    const processedChunks = chunks.map((chunk) => {
       let adjustedScore = chunk.relevanceScore;
 
       if (chunk.relevanceScore >= config.relevanceThreshold) {
@@ -294,7 +302,7 @@ export class ContextOptimizerService {
     });
 
     // Remove chunks with very low adjusted relevance
-    const filteredChunks = processedChunks.filter(chunk => chunk.relevanceScore >= 0.3);
+    const filteredChunks = processedChunks.filter((chunk) => chunk.relevanceScore >= 0.3);
 
     return {
       chunks: filteredChunks,
@@ -309,17 +317,18 @@ export class ContextOptimizerService {
   private async applyContentCompression(
     chunks: ContextChunk[],
     config: any,
-    targetTokens: number
+    targetTokens: number,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
     chunksCompressed: number;
   }> {
-    let compressedChunks: ContextChunk[] = [];
+    const compressedChunks: ContextChunk[] = [];
     let chunksCompressed = 0;
 
     for (const chunk of chunks) {
-      if (chunk.tokenCount > 100) { // Only compress longer chunks
+      if (chunk.tokenCount > 100) {
+        // Only compress longer chunks
         const compressionResult = await this.compressChunkContent(chunk, config);
 
         if (compressionResult.compressed) {
@@ -355,7 +364,7 @@ export class ContextOptimizerService {
    */
   private async applySemanticDeduplication(
     chunks: ContextChunk[],
-    config: any
+    config: any,
   ): Promise<{
     chunks: ContextChunk[];
     chunksRemoved: number;
@@ -384,7 +393,7 @@ export class ContextOptimizerService {
       } else {
         // Keep the chunk with highest relevance score
         const bestChunk = groupChunks.reduce((best, current) =>
-          current.relevanceScore > best.relevanceScore ? current : best
+          current.relevanceScore > best.relevanceScore ? current : best,
         );
         deduplicatedChunks.push(bestChunk);
       }
@@ -400,11 +409,14 @@ export class ContextOptimizerService {
   /**
    * Trim chunks to fit within token limit
    */
-  private async trimToTokenLimit(chunks: ContextChunk[], maxTokens: number): Promise<ContextChunk[]> {
+  private async trimToTokenLimit(
+    chunks: ContextChunk[],
+    maxTokens: number,
+  ): Promise<ContextChunk[]> {
     // Sort by relevance score descending
     const sortedChunks = chunks.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-    let selectedChunks: ContextChunk[] = [];
+    const selectedChunks: ContextChunk[] = [];
     let currentTokens = 0;
 
     for (const chunk of sortedChunks) {
@@ -414,7 +426,8 @@ export class ContextOptimizerService {
       } else {
         // Try to fit a compressed version
         const remainingTokens = maxTokens - currentTokens;
-        if (remainingTokens > 50) { // Minimum useful chunk size
+        if (remainingTokens > 50) {
+          // Minimum useful chunk size
           const truncatedChunk = {
             ...chunk,
             content: this.truncateContent(chunk.content, remainingTokens),
@@ -440,7 +453,7 @@ export class ContextOptimizerService {
    */
   private async compressChunkContent(
     chunk: ContextChunk,
-    config: any
+    config: any,
   ): Promise<ContextCompressionResult> {
     const originalContent = chunk.content;
     const originalTokens = chunk.tokenCount;
@@ -499,7 +512,9 @@ export class ContextOptimizerService {
 
   // Helper methods
 
-  private mergeStrategies(customStrategies: Partial<OptimizationStrategy>[]): OptimizationStrategy[] {
+  private mergeStrategies(
+    customStrategies: Partial<OptimizationStrategy>[],
+  ): OptimizationStrategy[] {
     const strategyMap = new Map<string, OptimizationStrategy>();
 
     // Add defaults
@@ -525,7 +540,7 @@ export class ContextOptimizerService {
     const words1 = new Set(chunk1.content.toLowerCase().split(/\s+/));
     const words2 = new Set(chunk2.content.toLowerCase().split(/\s+/));
 
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const intersection = new Set([...words1].filter((x) => words2.has(x)));
     const union = new Set([...words1, ...words2]);
 
     return intersection.size / union.size;
@@ -542,8 +557,16 @@ export class ContextOptimizerService {
 
     // Look for common business concepts
     const concepts = [
-      'booking', 'reservation', 'payment', 'customer', 'hotel', 'room',
-      'check-in', 'check-out', 'confirmation', 'cancellation',
+      'booking',
+      'reservation',
+      'payment',
+      'customer',
+      'hotel',
+      'room',
+      'check-in',
+      'check-out',
+      'confirmation',
+      'cancellation',
     ];
 
     for (const concept of concepts) {

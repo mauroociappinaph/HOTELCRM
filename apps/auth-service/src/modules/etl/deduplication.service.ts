@@ -34,7 +34,13 @@ export class DeduplicationService {
    */
   private getRecordId(record: any): string {
     // Try different ID fields
-    return record.id || record.recordId || record.eventId || record.sequenceNumber?.toString() || JSON.stringify(record.data);
+    return (
+      record.id ||
+      record.recordId ||
+      record.eventId ||
+      record.sequenceNumber?.toString() ||
+      JSON.stringify(record.data)
+    );
   }
 
   /**

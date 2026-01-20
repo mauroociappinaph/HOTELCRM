@@ -67,7 +67,8 @@ export type ParametersOf<T> = T extends (...args: infer P) => any ? P : never;
 /**
  * Check if two types are exactly equal
  */
-export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends (<T>() => T extends Y ? 1 : 2) ? true : false;
+export type Equals<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 
 /**
  * Flatten nested arrays
@@ -157,10 +158,12 @@ export interface QueryHandler<TQuery extends Query, TResult> {
 export function assertType<T>(
   value: unknown,
   guard: (value: unknown) => value is T,
-  message?: string
+  message?: string,
 ): asserts value is T {
   if (!guard(value)) {
-    throw new Error(message || `Type assertion failed: expected ${guard.name}, got ${typeof value}`);
+    throw new Error(
+      message || `Type assertion failed: expected ${guard.name}, got ${typeof value}`,
+    );
   }
 }
 
@@ -280,7 +283,11 @@ export interface SearchFilter<T> {
 /**
  * Generic CRUD operations with constraints
  */
-export interface CrudOperations<T extends { id: string }, TCreate = Omit<T, 'id'>, TUpdate = Partial<TCreate>> {
+export interface CrudOperations<
+  T extends { id: string },
+  TCreate = Omit<T, 'id'>,
+  TUpdate = Partial<TCreate>,
+> {
   create(data: TCreate): Promise<T>;
   read(id: string): Promise<Option<T>>;
   update(id: string, data: TUpdate): Promise<Option<T>>;
@@ -312,7 +319,10 @@ export interface Plugin<TConfig = any, TContext = any> {
 /**
  * Middleware chain with type composition
  */
-export type Middleware<TInput, TOutput> = (input: TInput, next: (input: TInput) => Promise<TOutput>) => Promise<TOutput>;
+export type Middleware<TInput, TOutput> = (
+  input: TInput,
+  next: (input: TInput) => Promise<TOutput>,
+) => Promise<TOutput>;
 
 export type MiddlewareChain<TInput, TOutput> = Middleware<TInput, TOutput>[];
 
@@ -401,7 +411,7 @@ export function mergeObjects<T extends Record<string, any>>(target: T, source: P
  */
 export function filterArray<T, S extends T>(
   array: readonly T[],
-  predicate: (item: T) => item is S
+  predicate: (item: T) => item is S,
 ): S[] {
   return array.filter(predicate);
 }
@@ -411,16 +421,19 @@ export function filterArray<T, S extends T>(
  */
 export function groupBy<T, K extends string | number>(
   array: readonly T[],
-  keyFn: (item: T) => K
+  keyFn: (item: T) => K,
 ): Record<K, T[]> {
-  return array.reduce((groups, item) => {
-    const key = keyFn(item);
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(item);
-    return groups;
-  }, {} as Record<K, T[]>);
+  return array.reduce(
+    (groups, item) => {
+      const key = keyFn(item);
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(item);
+      return groups;
+    },
+    {} as Record<K, T[]>,
+  );
 }
 
 // ==========================================

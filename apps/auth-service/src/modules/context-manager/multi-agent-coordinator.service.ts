@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+
 import { ContextAssemblerService, QueryContext } from './context-assembler.service';
 
 export interface Agent {
@@ -81,7 +83,12 @@ export class MultiAgentCoordinatorService {
       name: 'Search Specialist',
       role: 'Information Retrieval Expert',
       specialty: 'Web search, document search, and knowledge discovery',
-      capabilities: ['web_search', 'document_retrieval', 'knowledge_discovery', 'source_evaluation'],
+      capabilities: [
+        'web_search',
+        'document_retrieval',
+        'knowledge_discovery',
+        'source_evaluation',
+      ],
       model: 'openai/gpt-4o',
       temperature: 0.1,
       maxTokens: 2000,
@@ -109,7 +116,12 @@ Always provide sources and confidence levels for your findings.`,
       name: 'Data Analyst',
       role: 'Business Intelligence Specialist',
       specialty: 'Data analysis, pattern recognition, and business insights',
-      capabilities: ['data_analysis', 'pattern_recognition', 'trend_identification', 'business_intelligence'],
+      capabilities: [
+        'data_analysis',
+        'pattern_recognition',
+        'trend_identification',
+        'business_intelligence',
+      ],
       model: 'openai/gpt-4o',
       temperature: 0.2,
       maxTokens: 3000,
@@ -137,7 +149,12 @@ Focus on HOTELCRM business metrics: bookings, revenue, customer satisfaction, op
       name: 'Knowledge Synthesizer',
       role: 'Information Integration Expert',
       specialty: 'Combining multiple sources of information into coherent insights',
-      capabilities: ['information_synthesis', 'knowledge_integration', 'conflict_resolution', 'summary_generation'],
+      capabilities: [
+        'information_synthesis',
+        'knowledge_integration',
+        'conflict_resolution',
+        'summary_generation',
+      ],
       model: 'openai/gpt-4o',
       temperature: 0.3,
       maxTokens: 4000,
@@ -165,7 +182,12 @@ Ensure synthesized information is consistent, accurate, and valuable for HOTELCR
       name: 'Quality Assurance Specialist',
       role: 'Validation and Quality Control Expert',
       specialty: 'Validating information accuracy, consistency, and reliability',
-      capabilities: ['fact_checking', 'consistency_validation', 'quality_assessment', 'error_detection'],
+      capabilities: [
+        'fact_checking',
+        'consistency_validation',
+        'quality_assessment',
+        'error_detection',
+      ],
       model: 'openai/gpt-4o',
       temperature: 0.1,
       maxTokens: 1500,
@@ -208,7 +230,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
       maxParallelTasks?: number;
       timeout?: number;
       riskTolerance?: 'low' | 'medium' | 'high';
-    } = {}
+    } = {},
   ): Promise<{
     plan: CoordinationPlan;
     results: TaskResult[];
@@ -250,7 +272,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
   private async createCoordinationPlan(
     mainTask: string,
     context: QueryContext,
-    options: any
+    options: any,
   ): Promise<CoordinationPlan> {
     const planId = `plan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -284,15 +306,15 @@ Be thorough and critical in your validation process, ensuring only high-quality 
    */
   private async executeCoordinationPlan(
     plan: CoordinationPlan,
-    options: any
+    options: any,
   ): Promise<TaskResult[]> {
     const results: TaskResult[] = [];
     const maxParallel = options.maxParallelTasks || 3;
 
     for (const taskGroup of plan.executionOrder) {
       // Execute tasks in parallel within each group
-      const groupPromises = taskGroup.slice(0, maxParallel).map(taskId => {
-        const task = plan.subtasks.find(t => t.id === taskId);
+      const groupPromises = taskGroup.slice(0, maxParallel).map((taskId) => {
+        const task = plan.subtasks.find((t) => t.id === taskId);
         if (!task) throw new Error(`Task ${taskId} not found in plan`);
 
         return this.executeAgentTask(task, options.timeout || 30000);
@@ -308,7 +330,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
           results.push(result.value);
         } else {
           // Handle task failure
-          const failedTask = plan.subtasks.find(t => t.id === taskId)!;
+          const failedTask = plan.subtasks.find((t) => t.id === taskId)!;
           results.push({
             taskId,
             agentId: failedTask.agentId,
@@ -381,7 +403,9 @@ Be thorough and critical in your validation process, ensuring only high-quality 
       // Implement retry logic
       if (task.retryCount < task.maxRetries) {
         task.retryCount++;
-        this.logger.log(`🔄 Retrying task ${task.id} (attempt ${task.retryCount}/${task.maxRetries})`);
+        this.logger.log(
+          `🔄 Retrying task ${task.id} (attempt ${task.retryCount}/${task.maxRetries})`,
+        );
         return this.executeAgentTask(task, timeout);
       }
 
@@ -392,7 +416,11 @@ Be thorough and critical in your validation process, ensuring only high-quality 
   /**
    * Call agent API with specialized prompts
    */
-  private async callAgentAPI(agent: Agent, task: AgentTask, timeout: number): Promise<{
+  private async callAgentAPI(
+    agent: Agent,
+    task: AgentTask,
+    timeout: number,
+  ): Promise<{
     output: any;
     confidence: number;
     tokensUsed: number;
@@ -415,7 +443,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
         maxTokens: agent.maxTokens,
       });
 
-      const response = await Promise.race([apiPromise, timeoutPromise]) as any;
+      const response = (await Promise.race([apiPromise, timeoutPromise])) as any;
 
       const output = response.choices?.[0]?.message?.content || 'No response generated';
       const tokensUsed = response.usage?.totalTokens || 0;
@@ -436,7 +464,10 @@ Be thorough and critical in your validation process, ensuring only high-quality 
   /**
    * Analyze task complexity to determine coordination needs
    */
-  private async analyzeTaskComplexity(task: string, context: QueryContext): Promise<{
+  private async analyzeTaskComplexity(
+    task: string,
+    context: QueryContext,
+  ): Promise<{
     complexity: 'simple' | 'medium' | 'complex';
     requiredCapabilities: string[];
     estimatedSteps: number;
@@ -456,7 +487,10 @@ Be thorough and critical in your validation process, ensuring only high-quality 
       requiredCapabilities.push('web_search', 'document_retrieval');
     }
 
-    if (requiresSynthesis || (context.conversationHistory && context.conversationHistory.length > 5)) {
+    if (
+      requiresSynthesis ||
+      (context.conversationHistory && context.conversationHistory.length > 5)
+    ) {
       complexity = 'complex';
       requiredCapabilities.push('information_synthesis', 'pattern_recognition');
     }
@@ -475,7 +509,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
   private async decomposeTask(
     mainTask: string,
     analysis: any,
-    context: QueryContext
+    context: QueryContext,
   ): Promise<AgentTask[]> {
     const subtasks: AgentTask[] = [];
 
@@ -517,7 +551,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
             timeout: 25000,
             retryCount: 0,
             maxRetries: 2,
-          }
+          },
         );
         break;
 
@@ -567,7 +601,7 @@ Be thorough and critical in your validation process, ensuring only high-quality 
             timeout: 20000,
             retryCount: 0,
             maxRetries: 2,
-          }
+          },
         );
         break;
     }
@@ -585,18 +619,17 @@ Be thorough and critical in your validation process, ensuring only high-quality 
 
     const getNextBatch = (): string[] => {
       return subtasks
-        .filter(task => !processed.has(task.id))
-        .filter(task =>
-          !task.dependencies ||
-          task.dependencies.every(dep => processed.has(dep))
+        .filter((task) => !processed.has(task.id))
+        .filter(
+          (task) => !task.dependencies || task.dependencies.every((dep) => processed.has(dep)),
         )
-        .map(task => task.id);
+        .map((task) => task.id);
     };
 
     let batch = getNextBatch();
     while (batch.length > 0) {
       order.push(batch);
-      batch.forEach(id => processed.add(id));
+      batch.forEach((id) => processed.add(id));
       batch = getNextBatch();
     }
 
@@ -667,9 +700,9 @@ Be thorough and critical in your validation process.`;
   private async synthesizeFinalAnswer(
     results: TaskResult[],
     mainTask: string,
-    context: QueryContext
+    context: QueryContext,
   ): Promise<string> {
-    const successfulResults = results.filter(r => r.status === 'success');
+    const successfulResults = results.filter((r) => r.status === 'success');
 
     if (successfulResults.length === 0) {
       return 'Lo siento, no pude completar la tarea solicitada. Todos los intentos fallaron.';
@@ -685,7 +718,7 @@ Be thorough and critical in your validation process.`;
     if (!synthesisAgent) {
       // Fallback: return the result with highest confidence
       const bestResult = successfulResults.reduce((best, current) =>
-        current.confidence > best.confidence ? current : best
+        current.confidence > best.confidence ? current : best,
       );
       return bestResult.output;
     }
@@ -698,7 +731,11 @@ Be thorough and critical in your validation process.`;
         priority: 'high',
         input: {
           mainTask,
-          results: successfulResults.map(r => ({ agent: r.agentId, output: r.output, confidence: r.confidence })),
+          results: successfulResults.map((r) => ({
+            agent: r.agentId,
+            output: r.output,
+            confidence: r.confidence,
+          })),
           context,
         },
         timeout: 30000,
@@ -711,7 +748,7 @@ Be thorough and critical in your validation process.`;
     } catch (error) {
       this.logger.warn('Synthesis failed, using best individual result:', error);
       const bestResult = successfulResults.reduce((best, current) =>
-        current.confidence > best.confidence ? current : best
+        current.confidence > best.confidence ? current : best,
       );
       return bestResult.output;
     }
@@ -721,7 +758,7 @@ Be thorough and critical in your validation process.`;
    * Calculate overall confidence from all results
    */
   private calculateOverallConfidence(results: TaskResult[]): number {
-    const successfulResults = results.filter(r => r.status === 'success');
+    const successfulResults = results.filter((r) => r.status === 'success');
 
     if (successfulResults.length === 0) return 0;
 
@@ -756,7 +793,7 @@ Be thorough and critical in your validation process.`;
     planId: string,
     results: TaskResult[],
     finalAnswer: string,
-    confidence: number
+    confidence: number,
   ): Promise<void> {
     try {
       const client = this.supabaseService.getClient();
@@ -781,7 +818,7 @@ Be thorough and critical in your validation process.`;
     return subtasks.reduce((total, task) => {
       const agent = this.agents.get(task.agentId);
       const baseTime = agent ? 10000 : 15000; // Base time per agent type
-      return total + baseTime + (task.timeout * 0.1); // Add buffer
+      return total + baseTime + task.timeout * 0.1; // Add buffer
     }, 0);
   }
 
@@ -850,9 +887,12 @@ Be thorough and critical in your validation process.`;
       }
 
       const totalCoordinations = data.length;
-      const averageConfidence = data.reduce((sum, c) => sum + c.overall_confidence, 0) / totalCoordinations;
-      const averageProcessingTime = data.reduce((sum, c) => sum + c.processing_time, 0) / totalCoordinations;
-      const successRate = data.filter(c => c.overall_confidence > 0.7).length / totalCoordinations;
+      const averageConfidence =
+        data.reduce((sum, c) => sum + c.overall_confidence, 0) / totalCoordinations;
+      const averageProcessingTime =
+        data.reduce((sum, c) => sum + c.processing_time, 0) / totalCoordinations;
+      const successRate =
+        data.filter((c) => c.overall_confidence > 0.7).length / totalCoordinations;
 
       // Calculate agent performance
       const agentPerformance: Record<string, { tasks: number; avgConfidence: number }> = {};

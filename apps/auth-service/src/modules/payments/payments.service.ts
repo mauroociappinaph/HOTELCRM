@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+
 import { StripeService } from './stripe.service';
 
 @Injectable()
@@ -20,10 +22,12 @@ export class PaymentsService {
 
       const { data, error } = await client
         .from('subscriptions')
-        .select(`
+        .select(
+          `
           *,
           plan:subscription_plans(*)
-        `)
+        `,
+        )
         .eq('user_id', userId)
         .eq('agency_id', agencyId)
         .single();

@@ -53,7 +53,6 @@ export class MonitoringService implements OnModuleInit {
 
       this.isInitialized = true;
       this.logger.log('✅ DataDog APM monitoring initialized successfully');
-
     } catch (error) {
       this.logger.error('❌ Failed to initialize DataDog monitoring:', error);
       this.logger.warn('Application will continue without APM monitoring');
@@ -76,7 +75,11 @@ export class MonitoringService implements OnModuleInit {
   /**
    * Initialize DataDog tracer
    */
-  private async initializeDataDogTracer(apiKey: string, serviceName: string, env: string): Promise<void> {
+  private async initializeDataDogTracer(
+    apiKey: string,
+    serviceName: string,
+    env: string,
+  ): Promise<void> {
     try {
       // Use eval to dynamically require dd-trace at runtime
       const tracer = eval('require')('dd-trace');
@@ -104,9 +107,9 @@ export class MonitoringService implements OnModuleInit {
         tags: {
           'service.name': serviceName,
           'service.version': process.env.npm_package_version || '1.0.0',
-          'env': env,
-          'team': 'hotelcrm',
-          'component': 'auth-service',
+          env: env,
+          team: 'hotelcrm',
+          component: 'auth-service',
         },
 
         // Instrumentation
@@ -129,7 +132,6 @@ export class MonitoringService implements OnModuleInit {
       });
 
       this.logger.log(`📊 DataDog tracer initialized for service: ${serviceName} in env: ${env}`);
-
     } catch (error) {
       this.logger.error('Failed to initialize DataDog tracer:', error);
       throw error;
@@ -165,7 +167,6 @@ export class MonitoringService implements OnModuleInit {
       this.setupErrorMetrics(statsd);
 
       this.logger.log('📈 Custom metrics initialized');
-
     } catch (error) {
       this.logger.warn('Custom metrics initialization failed:', error);
     }
@@ -264,7 +265,6 @@ export class MonitoringService implements OnModuleInit {
       });
 
       this.logger.log('🛡️ Error tracking configured');
-
     } catch (error) {
       this.logger.warn('Error tracking setup failed:', error);
     }
@@ -281,8 +281,11 @@ export class MonitoringService implements OnModuleInit {
         const currentHeapUsed = process.memoryUsage().heapUsed;
         const growth = currentHeapUsed - lastHeapUsed;
 
-        if (growth > 10 * 1024 * 1024) { // 10MB growth
-          this.logger.warn(`⚠️  Significant heap growth detected: ${Math.round(growth / 1024 / 1024)}MB`);
+        if (growth > 10 * 1024 * 1024) {
+          // 10MB growth
+          this.logger.warn(
+            `⚠️  Significant heap growth detected: ${Math.round(growth / 1024 / 1024)}MB`,
+          );
         }
 
         lastHeapUsed = currentHeapUsed;
@@ -308,7 +311,6 @@ export class MonitoringService implements OnModuleInit {
       }, 30000); // Every 30 seconds
 
       this.logger.log('📊 Performance monitoring configured');
-
     } catch (error) {
       this.logger.warn('Performance monitoring setup failed:', error);
     }
@@ -338,7 +340,6 @@ export class MonitoringService implements OnModuleInit {
         this.logger.log('✅ Graceful shutdown completed');
         process.exit(0);
       }, 5000);
-
     } catch (error) {
       this.logger.error('Error during graceful shutdown:', error);
       process.exit(1);
@@ -389,7 +390,6 @@ export class MonitoringService implements OnModuleInit {
       }
 
       this.logger.log('🔍 Health check triggered successfully');
-
     } catch (error) {
       this.logger.error('Health check trigger failed:', error);
     }

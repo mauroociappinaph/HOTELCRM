@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 @Injectable()
@@ -25,7 +26,12 @@ export class StripeService {
   /**
    * Create or retrieve Stripe customer
    */
-  async createOrRetrieveCustomer(userId: string, agencyId: string, email: string, name?: string): Promise<string> {
+  async createOrRetrieveCustomer(
+    userId: string,
+    agencyId: string,
+    email: string,
+    name?: string,
+  ): Promise<string> {
     try {
       const client = this.supabaseService.getClient();
 
@@ -67,15 +73,13 @@ export class StripeService {
       });
 
       // Save to our database
-      const { error: insertError } = await client
-        .from('stripe_customers')
-        .insert({
-          user_id: userId,
-          agency_id: agencyId,
-          stripe_customer_id: customer.id,
-          email,
-          name: name || email,
-        });
+      const { error: insertError } = await client.from('stripe_customers').insert({
+        user_id: userId,
+        agency_id: agencyId,
+        stripe_customer_id: customer.id,
+        email,
+        name: name || email,
+      });
 
       if (insertError) {
         throw insertError;
@@ -132,13 +136,18 @@ export class StripeService {
   /**
    * Cancel subscription
    */
-  async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd: boolean = true): Promise<Stripe.Subscription> {
+  async cancelSubscription(
+    subscriptionId: string,
+    cancelAtPeriodEnd: boolean = true,
+  ): Promise<Stripe.Subscription> {
     try {
       const subscription = await this.stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: cancelAtPeriodEnd,
       });
 
-      this.logger.log(`Updated subscription ${subscriptionId} - cancel at period end: ${cancelAtPeriodEnd}`);
+      this.logger.log(
+        `Updated subscription ${subscriptionId} - cancel at period end: ${cancelAtPeriodEnd}`,
+      );
       return subscription;
     } catch (error) {
       this.logger.error('Error canceling subscription:', error);
@@ -166,7 +175,9 @@ export class StripeService {
         },
       });
 
-      this.logger.log(`Created payment intent ${paymentIntent.id} for amount ${amount} ${currency}`);
+      this.logger.log(
+        `Created payment intent ${paymentIntent.id} for amount ${amount} ${currency}`,
+      );
       return paymentIntent;
     } catch (error) {
       this.logger.error('Error creating payment intent:', error);
@@ -179,8 +190,7 @@ export class StripeService {
    */
   async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-      return subscription;
+      return await this.stripe.subscriptions.retrieve(subscriptionId);
     } catch (error) {
       this.logger.error('Error retrieving subscription:', error);
       throw new NotFoundException('Subscription not found');
@@ -329,7 +339,6 @@ export class StripeService {
           processed_at: new Date(),
         })
         .eq('stripe_event_id', event.id);
-
     } catch (error) {
       this.logger.error('Error processing webhook event:', error);
 
@@ -355,7 +364,9 @@ export class StripeService {
       const client = this.supabaseService.getClient();
 
       // Get user_id and agency_id from customer metadata
-      const customer = await this.stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
+      const customer = (await this.stripe.customers.retrieve(
+        subscription.customer as string,
+      )) as Stripe.Customer;
       const userId = customer.metadata?.user_id;
       const agencyId = customer.metadata?.agency_id;
 
@@ -385,18 +396,24 @@ export class StripeService {
         status: subscription.status,
         current_period_start: new Date((subscription as any).current_period_start * 1000),
         current_period_end: new Date((subscription as any).current_period_end * 1000),
-        trial_start: subscription.trial_start ? new Date((subscription as any).trial_start * 1000) : null,
+        trial_start: subscription.trial_start
+          ? new Date((subscription as any).trial_start * 1000)
+          : null,
         trial_end: subscription.trial_end ? new Date((subscription as any).trial_end * 1000) : null,
-        cancel_at: (subscription as any).cancel_at ? new Date((subscription as any).cancel_at * 1000) : null,
-        canceled_at: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000) : null,
-        ended_at: (subscription as any).ended_at ? new Date((subscription as any).ended_at * 1000) : null,
+        cancel_at: (subscription as any).cancel_at
+          ? new Date((subscription as any).cancel_at * 1000)
+          : null,
+        canceled_at: (subscription as any).canceled_at
+          ? new Date((subscription as any).canceled_at * 1000)
+          : null,
+        ended_at: (subscription as any).ended_at
+          ? new Date((subscription as any).ended_at * 1000)
+          : null,
       };
 
-      const { error } = await client
-        .from('subscriptions')
-        .upsert(subscriptionData, {
-          onConflict: 'user_id,agency_id',
-        });
+      const { error } = await client.from('subscriptions').upsert(subscriptionData, {
+        onConflict: 'user_id,agency_id',
+      });
 
       if (error) {
         throw error;
@@ -472,11 +489,9 @@ export class StripeService {
         }
       }
 
-      const { error } = await client
-        .from('invoices')
-        .upsert(invoiceData, {
-          onConflict: 'stripe_invoice_id',
-        });
+      const { error } = await client.from('invoices').upsert(invoiceData, {
+        onConflict: 'stripe_invoice_id',
+      });
 
       if (error) {
         throw error;
@@ -517,7 +532,11 @@ export class StripeService {
   /**
    * Validate webhook signature
    */
-  validateWebhookSignature(payload: Buffer, signature: string, webhookSecret: string): Stripe.Event {
+  validateWebhookSignature(
+    payload: Buffer,
+    signature: string,
+    webhookSecret: string,
+  ): Stripe.Event {
     try {
       return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (error) {

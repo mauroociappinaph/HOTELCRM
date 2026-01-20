@@ -21,13 +21,14 @@ export {
   TypeSafeBuilder,
   FluentBuilder,
   BookingBuilder,
-  BookingData,
   TypeSafeFactory,
   RepositoryBuilder,
   createBookingBuilder,
   createRepositoryBuilder,
   createTypeSafeFactory,
 } from './types/type-safe-builder';
+
+export type { BookingData } from './types/type-safe-builder';
 
 // Repository Pattern Exports (avoiding conflicts with existing types)
 export type {

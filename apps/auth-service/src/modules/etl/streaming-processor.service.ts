@@ -11,7 +11,9 @@ export class StreamingProcessorService {
   async processRecords(pipelineId: string, records: any[]): Promise<void> {
     if (records.length === 0) return;
 
-    this.logger.log(`🌊 Processing ${records.length} records in streaming mode for pipeline: ${pipelineId}`);
+    this.logger.log(
+      `🌊 Processing ${records.length} records in streaming mode for pipeline: ${pipelineId}`,
+    );
 
     // In a real implementation, this would send records to a streaming platform
     // like Kafka, Kinesis, or process them through a streaming framework
@@ -25,7 +27,9 @@ export class StreamingProcessorService {
       }
     }
 
-    this.logger.log(`✅ Completed streaming processing of ${records.length} records for pipeline: ${pipelineId}`);
+    this.logger.log(
+      `✅ Completed streaming processing of ${records.length} records for pipeline: ${pipelineId}`,
+    );
   }
 
   /**
@@ -38,7 +42,7 @@ export class StreamingProcessorService {
       watermarkDelay: number;
       onRecordProcessed: (record: any) => void;
       onError: (error: Error) => void;
-    }
+    },
   ): Promise<void> {
     this.logger.log(`🌊 Starting streaming processor for pipeline: ${pipelineId}`);
 
@@ -69,7 +73,7 @@ export class StreamingProcessorService {
    */
   private async processStreamingRecord(pipelineId: string, record: any): Promise<void> {
     // Simulate streaming processing latency
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
 
     // In production, this would:
     // 1. Validate the record

@@ -1,7 +1,9 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
 import { DashboardDataDto } from '@hotel-crm/shared';
+
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+
+import { DashboardService } from './dashboard.service';
 
 @Controller('dashboard')
 @UseGuards(SupabaseAuthGuard)

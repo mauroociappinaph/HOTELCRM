@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenRouter } from '@openrouter/sdk';
+
+import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
 @Injectable()
 export class EmbeddingsService {
@@ -30,8 +31,7 @@ export class EmbeddingsService {
       this.logger.warn('Using mock embeddings - implement proper OpenRouter response parsing');
 
       // Mock embedding for development (1024 dimensions as per Voyage AI)
-      const mockEmbedding = Array.from({ length: 1024 }, () => Math.random() * 2 - 1);
-      return mockEmbedding;
+      return Array.from({ length: 1024 }, () => Math.random() * 2 - 1);
     } catch (error) {
       this.logger.error('Error generating embeddings:', error);
       throw new Error('Failed to generate embeddings');
@@ -52,8 +52,7 @@ export class EmbeddingsService {
       separators: ['\n\n', '\n', ' ', ''],
     });
 
-    const chunks = await splitter.splitText(content);
-    return chunks;
+    return await splitter.splitText(content);
   }
 
   /**

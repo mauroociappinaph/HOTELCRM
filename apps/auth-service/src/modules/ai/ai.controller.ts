@@ -1,7 +1,9 @@
 import { Controller, Post, Get, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+
 import { ChatService } from './chat.service';
 import { EmbeddingsService } from './embeddings.service';
-import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
 @Controller('ai')
 @UseGuards(SupabaseAuthGuard)
