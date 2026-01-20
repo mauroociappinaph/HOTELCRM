@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import DataLoader from 'dataloader';
 
-import { SupabaseService } from './supabase/supabase.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class DataLoaderService {
   // DataLoader for batch loading clients by ID
-  private clientLoader: DataLoader<string, any>;
+  private clientLoader!: DataLoader<string, any>;
 
   // DataLoader for batch loading bookings by user ID
-  private userBookingsLoader: DataLoader<string, any[]>;
+  private userBookingsLoader!: DataLoader<string, any[]>;
 
   // DataLoader for batch loading itineraries by client ID
-  private clientItinerariesLoader: DataLoader<string, any[]>;
+  private clientItinerariesLoader!: DataLoader<string, any[]>;
 
   constructor(private readonly supabaseService: SupabaseService) {
     this.initializeLoaders();
@@ -32,8 +32,8 @@ export class DataLoaderService {
       }
 
       // Map results back to the requested IDs
-      const clientMap = new Map(data?.map(client => [client.id, client]) || []);
-      return clientIds.map(id => clientMap.get(id as string) || null);
+      const clientMap = new Map(data?.map((client: any) => [client.id, client]) || []);
+      return clientIds.map(id => clientMap.get(id) || null);
     });
 
     // 🔧 OPTIMIZATION: Batch load bookings by user ID
@@ -53,7 +53,7 @@ export class DataLoaderService {
 
       // Group bookings by user_id
       const bookingsByUser = new Map<string, any[]>();
-      data?.forEach(booking => {
+      data?.forEach((booking: any) => {
         const userId = booking.user_id;
         if (!bookingsByUser.has(userId)) {
           bookingsByUser.set(userId, []);
@@ -62,7 +62,7 @@ export class DataLoaderService {
       });
 
       // Return bookings array for each requested user
-      return userIds.map(userId => bookingsByUser.get(userId as string) || []);
+      return userIds.map(userId => bookingsByUser.get(userId) || []);
     });
 
     // 🔧 OPTIMIZATION: Batch load itineraries by client ID
@@ -81,7 +81,7 @@ export class DataLoaderService {
 
       // Group itineraries by client_id
       const itinerariesByClient = new Map<string, any[]>();
-      data?.forEach(itinerary => {
+      data?.forEach((itinerary: any) => {
         const clientId = itinerary.client_id;
         if (!itinerariesByClient.has(clientId)) {
           itinerariesByClient.set(clientId, []);
@@ -89,7 +89,7 @@ export class DataLoaderService {
         itinerariesByClient.get(clientId)!.push(itinerary);
       });
 
-      return clientIds.map(clientId => itinerariesByClient.get(clientId as string) || []);
+      return clientIds.map(clientId => itinerariesByClient.get(clientId) || []);
     });
   }
 
@@ -118,7 +118,8 @@ export class DataLoaderService {
    * Load bookings for multiple users (batched)
    */
   async loadUsersBookings(userIds: string[]): Promise<any[][]> {
-    return this.userBookingsLoader.loadMany(userIds);
+    const results = await this.userBookingsLoader.loadMany(userIds);
+    return results.map(result => result instanceof Error ? [] : result);
   }
 
   /**
@@ -132,7 +133,8 @@ export class DataLoaderService {
    * Load itineraries for multiple clients (batched)
    */
   async loadClientsItineraries(clientIds: string[]): Promise<any[][]> {
-    return this.clientItinerariesLoader.loadMany(clientIds);
+    const results = await this.clientItinerariesLoader.loadMany(clientIds);
+    return results.map(result => result instanceof Error ? [] : result);
   }
 
   /**

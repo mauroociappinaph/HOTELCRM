@@ -291,7 +291,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return (data || []) as T[];
+      return (data || []) as unknown as T[];
     } catch (error) {
       throw new Error(`Failed to find many ${this.tableName}: ${getErrorMessage(error)}`);
     }
