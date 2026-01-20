@@ -8,6 +8,7 @@ import { HealthModule } from './modules/health/health.module';
 import { SecurityModule } from './modules/security/security.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { EtlModule } from './modules/etl/etl.module';
+import { DataQualityModule } from './modules/data-quality/data-quality.module';
 
 /**
  * Módulo raíz del microservicio de autenticación.
@@ -27,6 +28,7 @@ import { EtlModule } from './modules/etl/etl.module';
     SecurityModule,
     MonitoringModule,
     EtlModule,
+    DataQualityModule,
   ],
 })
 export class AppModule {}

@@ -6,8 +6,10 @@ import { WatermarkingService } from './watermarking.service';
 import { DeduplicationService } from './deduplication.service';
 import { BatchProcessorService } from './batch-processor.service';
 import { StreamingProcessorService } from './streaming-processor.service';
+import { DataQualityModule } from '../data-quality/data-quality.module';
 
 @Module({
+  imports: [DataQualityModule],
   providers: [
     EtlService,
     DataIngestionService,

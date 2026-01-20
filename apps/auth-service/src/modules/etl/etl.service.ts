@@ -5,6 +5,9 @@ import { WatermarkingService } from './watermarking.service';
 import { DeduplicationService } from './deduplication.service';
 import { BatchProcessorService } from './batch-processor.service';
 import { StreamingProcessorService } from './streaming-processor.service';
+import { DataQualityGateService, QualityGateResult } from '../data-quality/data-quality-gate.service';
+import { QualityMetricsService } from '../data-quality/quality-metrics.service';
+import { BusinessRulesEngineService } from '../data-quality/business-rules-engine.service';
 
 export interface EtlPipelineConfig {
   pipelineId: string;
@@ -57,11 +60,39 @@ export class EtlService implements OnModuleInit {
     private readonly deduplication: DeduplicationService,
     private readonly batchProcessor: BatchProcessorService,
     private readonly streamingProcessor: StreamingProcessorService,
+    private readonly dataQualityGate: DataQualityGateService,
+    private readonly qualityMetrics: QualityMetricsService,
+    private readonly businessRulesEngine: BusinessRulesEngineService,
   ) {}
 
   async onModuleInit() {
+    await this.initializeDataQualityFramework();
     await this.initializeDefaultPipelines();
     this.startBackgroundProcessing();
+  }
+
+  /**
+   * Initialize the Data Quality Framework with HOTELCRM rules and schemas
+   */
+  private async initializeDataQualityFramework(): Promise<void> {
+    try {
+      // Register HOTELCRM schemas
+      this.dataQualityGate.registerHotelCrmSchemas();
+
+      // Register HOTELCRM business rules
+      this.businessRulesEngine.registerHotelCrmRules();
+
+      // Register HOTELCRM quality gates
+      this.dataQualityGate.registerHotelCrmGates();
+
+      // Register HOTELCRM quality metrics
+      this.qualityMetrics.registerHotelCrmMetrics();
+
+      this.logger.log('✅ Data Quality Framework initialized with HOTELCRM rules');
+    } catch (error) {
+      this.logger.error('❌ Failed to initialize Data Quality Framework:', error);
+      // Continue without data quality - ETL will still work but without validation
+    }
   }
 
   /**
@@ -218,23 +249,62 @@ export class EtlService implements OnModuleInit {
     this.logger.log(`🔄 Processing batch of ${queue.length} records for pipeline: ${pipelineId}`);
 
     try {
-      // Sort records by event time to handle out-of-order data
-      const sortedRecords = await this.eventTimeProcessor.sortByEventTime(queue);
+      // 🔍 PASO 1: Aplicar Quality Gates (Aduanas de Data Quality)
+      const qualityChecks: QualityGateResult[] = [];
+      const validRecords: EtlRecord[] = [];
 
-      // Apply watermarking for late-arriving data
+      for (const record of queue) {
+        try {
+          // Determinar qué quality gate usar basado en el pipeline
+          const gateId = this.getGateForPipeline(pipelineId);
+
+          const qualityResult = await this.dataQualityGate.validateRecord(
+            gateId,
+            record.data, // Validar solo los datos, no el wrapper del record
+            record.id,
+            { pipelineId, source: record.source }
+          );
+
+          qualityChecks.push(qualityResult);
+
+          if (qualityResult.passed) {
+            validRecords.push(record);
+          }
+
+        } catch (error) {
+          this.logger.warn(`⚠️ Quality gate rejected record ${record.id}:`, error instanceof Error ? error.message : error);
+          // Record is automatically quarantined by the quality gate
+        }
+      }
+
+      // Update quality metrics
+      this.qualityMetrics.updateMetricsFromGateResults(qualityChecks);
+
+      this.logger.log(`🛡️ Quality gates processed: ${qualityChecks.filter(c => c.passed).length}/${qualityChecks.length} records passed`);
+
+      if (validRecords.length === 0) {
+        this.logger.log(`⚠️ No valid records to process for pipeline: ${pipelineId}`);
+        this.processingQueues.set(pipelineId, []);
+        return;
+      }
+
+      // 🔄 PASO 2: Sort records by event time to handle out-of-order data
+      const sortedRecords = await this.eventTimeProcessor.sortByEventTime(validRecords);
+
+      // 🌊 PASO 3: Apply watermarking for late-arriving data
       const watermarkedRecords = await this.watermarking.applyWatermark(
         pipelineId,
         sortedRecords,
         pipeline.watermarkDelayMinutes
       );
 
-      // Deduplicate records
+      // 🗑️ PASO 4: Deduplicate records
       const deduplicatedRecords = await this.deduplication.deduplicate(
         watermarkedRecords,
         pipeline.deduplicationWindowMinutes
       );
 
-      // Process through appropriate processor
+      // 📊 PASO 5: Process through appropriate processor
       if (pipeline.enableStreaming && deduplicatedRecords.length > 0) {
         await this.streamingProcessor.processRecords(pipelineId, deduplicatedRecords);
       }
@@ -243,14 +313,16 @@ export class EtlService implements OnModuleInit {
         await this.batchProcessor.processBatch(pipelineId, deduplicatedRecords, pipeline.destinationTable);
       }
 
-      // Update watermark
-      const latestEventTime = Math.max(...deduplicatedRecords.map(r => r.eventTime.getTime()));
-      await this.watermarking.updateWatermark(pipelineId, new Date(latestEventTime));
+      // 📈 PASO 6: Update watermark
+      if (deduplicatedRecords.length > 0) {
+        const latestEventTime = Math.max(...deduplicatedRecords.map(r => r.eventTime.getTime()));
+        await this.watermarking.updateWatermark(pipelineId, new Date(latestEventTime));
+      }
 
-      // Clear processed records from queue
+      // 🧹 PASO 7: Clear processed records from queue
       this.processingQueues.set(pipelineId, []);
 
-      this.logger.log(`✅ Successfully processed ${deduplicatedRecords.length} records for pipeline: ${pipelineId}`);
+      this.logger.log(`✅ Successfully processed ${deduplicatedRecords.length}/${validRecords.length} records for pipeline: ${pipelineId}`);
 
     } catch (error) {
       this.logger.error(`❌ Batch processing failed for pipeline ${pipelineId}:`, error);
@@ -501,5 +573,29 @@ export class EtlService implements OnModuleInit {
       stats[pipelineId] = this.getPipelineStats(pipelineId);
     }
     return stats;
+  }
+
+  /**
+   * Get the appropriate quality gate for a pipeline
+   */
+  private getGateForPipeline(pipelineId: string): string {
+    // Map pipeline IDs to their corresponding quality gates
+    const gateMapping: Record<string, string> = {
+      'bookings-etl': 'bookings-gate',
+      'clients-etl': 'clients-gate',
+      'payments-etl': 'payments-gate',
+    };
+
+    return gateMapping[pipelineId] || 'general-gate';
+  }
+
+  /**
+   * Get data quality summary for monitoring
+   */
+  getDataQualitySummary() {
+    return {
+      qualityScore: this.qualityMetrics.calculateQualityScore(),
+      qualityGates: this.dataQualityGate.getQualityGateSummary(),
+    };
   }
 }
