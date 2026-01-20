@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 import { EmbeddingsService } from './embeddings.service';
+import { ContextAssemblerService, QueryContext, ContextChunk, OptimizedContext } from '../context-manager/context-assembler.service';
+import { MemoryManagerService, EpisodicMemory, SemanticMemory, ProceduralMemory } from '../context-manager/memory-manager.service';
+import { ContextOptimizerService } from '../context-manager/context-optimizer.service';
 import { OpenRouter } from '@openrouter/sdk';
 
 @Injectable()
@@ -11,6 +14,9 @@ export class ChatService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly embeddingsService: EmbeddingsService,
+    private readonly contextAssembler: ContextAssemblerService,
+    private readonly memoryManager: MemoryManagerService,
+    private readonly contextOptimizer: ContextOptimizerService,
   ) {
     this.openRouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -47,7 +53,7 @@ export class ChatService {
   }
 
   /**
-   * Send a message and get AI response with RAG context
+   * Send a message and get AI response with Advanced Context Management
    */
   async sendMessage(
     sessionId: string,
@@ -66,6 +72,12 @@ export class ChatService {
     }>;
     tokens_used: number;
     cost: number;
+    context_metadata: {
+      total_chunks: number;
+      compression_ratio: number;
+      relevance_score: number;
+      strategies_used: string[];
+    };
   }> {
     try {
       const client = this.supabaseService.getClient();
@@ -77,33 +89,140 @@ export class ChatService {
         content: message,
       });
 
-      // Search for relevant context using RAG
-      const contextResults = await this.embeddingsService.searchSimilarDocuments(
+      // 🧠 PHASE 1: Get conversation history for context
+      const conversationHistory = await this.getConversationHistory(sessionId);
+
+      // 🧠 PHASE 2: Search for relevant documents using embeddings
+      const rawContextResults = await this.embeddingsService.searchSimilarDocuments(
         message,
         agencyId,
-        3,
+        20, // Get more results for better context selection
       );
 
-      // Prepare context for the AI
-      const context = contextResults
-        .filter((result) => result.similarity > 0.7) // Only highly relevant results
-        .map((result) => `[${result.document_title}] ${result.chunk_content}`)
-        .join('\n\n');
+      // 🧠 PHASE 3: Convert to ContextChunks for advanced processing
+      const contextChunks: ContextChunk[] = rawContextResults.map(result => ({
+        id: result.document_id,
+        content: result.chunk_content,
+        source: result.document_category || 'unknown',
+        relevanceScore: result.similarity,
+        tokenCount: this.estimateTokenCount(result.chunk_content),
+        timestamp: new Date(result.created_at || Date.now()),
+        metadata: {
+          document_title: result.document_title,
+          document_category: result.document_category,
+          similarity: result.similarity,
+        },
+      }));
 
-      // Prepare the prompt with context
-      const systemPrompt = `You are a helpful AI assistant for a travel agency. Use the following context to provide accurate, relevant answers. If the context doesn't contain relevant information, provide a general helpful response.
+      // 🧠 PHASE 4: Query memory systems for additional context
+      const episodicMemories = await this.memoryManager.queryMemories({
+        type: 'episodic',
+        query: message,
+        userId,
+        sessionId,
+        limit: 5,
+      });
 
-Context:
-${context}
+      const semanticMemories = await this.memoryManager.queryMemories({
+        type: 'semantic',
+        query: message,
+        userId,
+        limit: 3,
+      });
 
-Guidelines:
-- Be friendly and professional
-- Provide specific, actionable advice when possible
-- If you use information from the context, cite the source in parentheses
-- Keep responses concise but comprehensive
-- If you're unsure about something, admit it rather than guessing`;
+      const proceduralMemories = await this.memoryManager.queryMemories({
+        type: 'procedural',
+        query: message,
+        userId,
+        limit: 2,
+      });
 
-      // Get AI response
+      // 🧠 PHASE 5: Convert memories to context chunks
+      const memoryChunks: ContextChunk[] = [];
+
+      // Add episodic memories
+      for (const mem of episodicMemories) {
+        if ('content' in mem.content && 'timestamp' in mem.content && 'outcome' in mem.content) {
+          memoryChunks.push({
+            id: `episodic-${mem.content.id}`,
+            content: mem.content.content,
+            source: 'episodic_memory',
+            relevanceScore: mem.relevanceScore,
+            tokenCount: this.estimateTokenCount(mem.content.content),
+            timestamp: new Date(mem.content.timestamp),
+            metadata: { type: 'episodic', outcome: mem.content.outcome },
+          });
+        }
+      }
+
+      // Add semantic memories
+      for (const mem of semanticMemories) {
+        if ('facts' in mem.content && 'lastUpdated' in mem.content && 'confidence' in mem.content) {
+          memoryChunks.push({
+            id: `semantic-${mem.content.id}`,
+            content: Array.isArray(mem.content.facts) ? mem.content.facts.join('. ') : String(mem.content.facts),
+            source: 'semantic_memory',
+            relevanceScore: mem.relevanceScore,
+            tokenCount: this.estimateTokenCount(Array.isArray(mem.content.facts) ? mem.content.facts.join('. ') : String(mem.content.facts)),
+            timestamp: new Date(mem.content.lastUpdated),
+            metadata: { type: 'semantic', confidence: mem.content.confidence },
+          });
+        }
+      }
+
+      // Add procedural memories
+      for (const mem of proceduralMemories) {
+        if ('pattern' in mem.content && 'steps' in mem.content && 'lastUsed' in mem.content && 'successRate' in mem.content) {
+          memoryChunks.push({
+            id: `procedural-${mem.content.id}`,
+            content: `${mem.content.pattern}: ${Array.isArray(mem.content.steps) ? mem.content.steps.join(' -> ') : String(mem.content.steps)}`,
+            source: 'procedural_memory',
+            relevanceScore: mem.relevanceScore,
+            tokenCount: this.estimateTokenCount(Array.isArray(mem.content.steps) ? mem.content.steps.join(' ') : String(mem.content.steps)),
+            timestamp: new Date(mem.content.lastUsed),
+            metadata: { type: 'procedural', successRate: mem.content.successRate },
+          });
+        }
+      }
+
+      // 🧠 PHASE 6: Combine all context sources
+      const allChunks = [...contextChunks, ...memoryChunks];
+
+      // 🧠 PHASE 7: Create query context
+      const queryContext: QueryContext = {
+        query: message,
+        userId,
+        sessionId,
+        conversationHistory: conversationHistory.map(h => ({
+          role: h.role as 'user' | 'assistant',
+          content: h.content,
+          timestamp: new Date(h.created_at),
+        })),
+        domain: 'hotel_crm', // HOTELCRM specific domain
+        urgency: this.determineUrgency(message),
+      };
+
+      // 🧠 PHASE 8: Assemble optimized context
+      const optimizedContext: OptimizedContext = await this.contextAssembler.assembleContext(
+        allChunks,
+        queryContext,
+        {
+          maxTokens: 6000, // Conservative limit for most models
+          targetTokens: 4000,
+          minTokens: 1000,
+        }
+      );
+
+      // 🧠 PHASE 9: Apply additional optimization if needed
+      const finalContext = await this.contextOptimizer.optimizeContext(
+        optimizedContext.chunks,
+        3500, // Final token budget
+      );
+
+      // 🧠 PHASE 10: Build system prompt with optimized context
+      const systemPrompt = this.buildSystemPrompt(finalContext, queryContext);
+
+      // Get AI response with optimized context
       const response = await this.openRouter.chat.send({
         messages: [
           { role: 'system', content: systemPrompt },
@@ -121,13 +240,36 @@ Guidelines:
       const costPerToken = 0.000001; // Adjust based on actual pricing
       const estimatedCost = tokensUsed * costPerToken;
 
+      // Convert aiResponse to string for storage
+      const aiResponseStr = typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse);
+
+      // 🧠 PHASE 11: Store interaction in episodic memory
+      await this.memoryManager.storeEpisodicMemory({
+        userId,
+        sessionId,
+        interactionType: 'conversation',
+        content: `User: ${message}\nAssistant: ${aiResponseStr}`,
+        context: {
+          model,
+          tokensUsed,
+          contextChunks: finalContext.chunks.length,
+          compressionRatio: finalContext.compressionRatio,
+        },
+        outcome: 'success',
+        importance: this.calculateInteractionImportance(message, aiResponseStr),
+        timestamp: new Date(),
+      });
+
+      // 🧠 PHASE 12: Update semantic memory with new knowledge
+      await this.updateSemanticMemory(message, aiResponseStr, agencyId);
+
       // Convert sources to expected format
-      const sources = contextResults.slice(0, 3).map((result) => ({
-        document_id: result.document_id,
-        content: result.chunk_content,
-        similarity: result.similarity,
-        title: result.document_title,
-        category: result.document_category,
+      const sources = finalContext.chunks.slice(0, 5).map((chunk) => ({
+        document_id: chunk.id,
+        content: chunk.content,
+        similarity: chunk.relevanceScore,
+        title: chunk.metadata?.document_title || chunk.source,
+        category: chunk.source,
       }));
 
       // Save AI response
@@ -140,10 +282,16 @@ Guidelines:
         metadata: {
           sources,
           cost: estimatedCost,
+          contextMetadata: {
+            totalChunks: finalContext.chunks.length,
+            compressionRatio: finalContext.compressionRatio,
+            relevanceScore: finalContext.relevanceScore,
+            strategiesUsed: finalContext.metadata.strategiesUsed,
+          },
         },
       });
 
-      // Update session stats (manual calculation since sql helper doesn't exist)
+      // Update session stats
       const { data: currentSession } = await client
         .from('ai_chat_sessions')
         .select('total_tokens, total_cost')
@@ -164,16 +312,21 @@ Guidelines:
       await client.from('ai_usage_logs').insert({
         agency_id: agencyId,
         user_id: userId,
-        service_type: 'chat',
+        service_type: 'chat_advanced',
         model_used: model,
         tokens_used: tokensUsed,
         cost_usd: estimatedCost,
-        request_data: { message, model },
+        request_data: { message, model, contextOptimization: true },
         response_data: {
           response:
             typeof aiResponse === 'string'
               ? aiResponse.substring(0, 500)
               : JSON.stringify(aiResponse).substring(0, 500),
+          contextStats: {
+            chunksUsed: finalContext.chunks.length,
+            compressionRatio: finalContext.compressionRatio,
+            relevanceScore: finalContext.relevanceScore,
+          },
         },
       });
 
@@ -182,6 +335,12 @@ Guidelines:
         sources,
         tokens_used: tokensUsed,
         cost: estimatedCost,
+        context_metadata: {
+          total_chunks: finalContext.chunks.length,
+          compression_ratio: finalContext.compressionRatio,
+          relevance_score: finalContext.relevanceScore,
+          strategies_used: finalContext.metadata.strategiesUsed,
+        },
       };
     } catch (error) {
       this.logger.error('Error sending message:', error);
@@ -360,5 +519,198 @@ Guidelines:
       this.logger.error('Error generating recommendations:', error);
       throw new Error('Failed to generate recommendations');
     }
+  }
+
+  // Helper methods for Advanced Context Management
+
+  /**
+   * Get conversation history for context
+   */
+  private async getConversationHistory(sessionId: string): Promise<any[]> {
+    try {
+      const client = this.supabaseService.getClient();
+      const { data, error } = await client
+        .from('ai_chat_messages')
+        .select('role, content, created_at')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+        .limit(10); // Last 10 messages for context
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      this.logger.warn('Error getting conversation history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Estimate token count for content
+   */
+  private estimateTokenCount(content: string): number {
+    // Rough approximation: ~4 characters per token for English text
+    return Math.ceil(content.length / 4);
+  }
+
+  /**
+   * Determine urgency level from message
+   */
+  private determineUrgency(message: string): 'low' | 'medium' | 'high' | 'critical' {
+    const lowerMessage = message.toLowerCase();
+
+    // Critical keywords
+    if (lowerMessage.includes('emergency') || lowerMessage.includes('urgent') ||
+        lowerMessage.includes('critical') || lowerMessage.includes('asap')) {
+      return 'critical';
+    }
+
+    // High priority
+    if (lowerMessage.includes('important') || lowerMessage.includes('deadline') ||
+        lowerMessage.includes('immediately') || lowerMessage.includes('today')) {
+      return 'high';
+    }
+
+    // Medium priority
+    if (lowerMessage.includes('soon') || lowerMessage.includes('quick') ||
+        lowerMessage.includes('fast')) {
+      return 'medium';
+    }
+
+    return 'low';
+  }
+
+  /**
+   * Build optimized system prompt
+   */
+  private buildSystemPrompt(context: OptimizedContext, queryContext: QueryContext): string {
+    const contextText = context.chunks
+      .map(chunk => `[${chunk.metadata?.document_title || chunk.source}] ${chunk.content}`)
+      .join('\n\n');
+
+    return `You are an advanced AI assistant for HOTELCRM, a comprehensive hotel management system.
+
+CONTEXT INFORMATION (Optimized for relevance - ${Math.round(context.compressionRatio * 100)}% compression ratio):
+${contextText}
+
+SYSTEM CAPABILITIES:
+- Hotel booking and reservation management
+- Customer relationship management
+- Payment processing with Stripe
+- Real-time analytics and reporting
+- AI-powered recommendations
+- Multi-agency support with data isolation
+
+RESPONSE GUIDELINES:
+- Provide specific, actionable advice using the context provided
+- Be friendly and professional
+- Cite sources when using specific information
+- Keep responses concise but comprehensive
+- If you don't have relevant information, acknowledge it and provide general guidance
+- Focus on HOTELCRM features and best practices
+
+Current domain: ${queryContext.domain || 'general'}
+Urgency level: ${queryContext.urgency || 'normal'}`;
+  }
+
+  /**
+   * Calculate interaction importance for memory storage
+   */
+  private calculateInteractionImportance(message: string, response: string): number {
+    let importance = 0.5; // Base importance
+
+    // High importance keywords
+    const highImportanceKeywords = [
+      'error', 'problem', 'issue', 'bug', 'fail', 'crash', 'emergency',
+      'security', 'payment', 'booking', 'reservation', 'cancel',
+      'refund', 'complaint', 'urgent', 'critical'
+    ];
+
+    const combinedText = (message + response).toLowerCase();
+    for (const keyword of highImportanceKeywords) {
+      if (combinedText.includes(keyword)) {
+        importance += 0.2;
+      }
+    }
+
+    // Length-based importance (longer conversations tend to be more important)
+    if (combinedText.length > 500) importance += 0.1;
+    if (combinedText.length > 1000) importance += 0.1;
+
+    return Math.min(1.0, importance);
+  }
+
+  /**
+   * Update semantic memory with new knowledge from conversation
+   */
+  private async updateSemanticMemory(message: string, response: string, agencyId: string): Promise<void> {
+    try {
+      // Extract key concepts from the conversation
+      const concepts = this.extractConcepts(message, response);
+
+      for (const concept of concepts) {
+        await this.memoryManager.storeSemanticMemory({
+          concept: concept.name,
+          category: concept.category,
+          facts: [concept.fact],
+          relationships: concept.relationships,
+          confidence: concept.confidence,
+          source: 'conversation_extraction',
+        });
+      }
+    } catch (error) {
+      this.logger.warn('Error updating semantic memory:', error);
+      // Don't throw - memory updates are not critical
+    }
+  }
+
+  /**
+   * Extract concepts from conversation for semantic memory
+   */
+  private extractConcepts(message: string, response: string): Array<{
+    name: string;
+    category: string;
+    fact: string;
+    relationships: Array<{ relatedConcept: string; relationshipType: string; strength: number }>;
+    confidence: number;
+  }> {
+    const concepts: Array<{
+      name: string;
+      category: string;
+      fact: string;
+      relationships: Array<{ relatedConcept: string; relationshipType: string; strength: number }>;
+      confidence: number;
+    }> = [];
+
+    const combinedText = (message + ' ' + response).toLowerCase();
+
+    // Extract booking-related concepts
+    if (combinedText.includes('booking') || combinedText.includes('reservation')) {
+      concepts.push({
+        name: 'Hotel Booking Process',
+        category: 'business_process',
+        fact: 'Hotel bookings involve check-in/check-out dates, guest information, and payment processing',
+        relationships: [
+          { relatedConcept: 'Payment Processing', relationshipType: 'requires', strength: 0.8 },
+          { relatedConcept: 'Guest Management', relationshipType: 'involves', strength: 0.9 }
+        ],
+        confidence: 0.8,
+      });
+    }
+
+    // Extract payment-related concepts
+    if (combinedText.includes('payment') || combinedText.includes('stripe')) {
+      concepts.push({
+        name: 'Payment Processing',
+        category: 'technical_process',
+        fact: 'Payments are processed through Stripe with support for multiple currencies',
+        relationships: [
+          { relatedConcept: 'Stripe Integration', relationshipType: 'uses', strength: 0.9 },
+          { relatedConcept: 'Hotel Booking Process', relationshipType: 'supports', strength: 0.8 }
+        ],
+        confidence: 0.9,
+      });
+    }
+
+    return concepts;
   }
 }

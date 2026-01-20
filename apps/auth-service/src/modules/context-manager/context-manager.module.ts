@@ -12,15 +12,15 @@ import { SupabaseModule } from '../../infrastructure/supabase/supabase.module';
     ContextAssemblerService,
     MemoryManagerService,
     ContextOptimizerService,
-    MultiAgentCoordinatorService,
-    ContextMetricsService,
+    // MultiAgentCoordinatorService, // TODO: Implement
+    // ContextMetricsService, // TODO: Implement
   ],
   exports: [
     ContextAssemblerService,
     MemoryManagerService,
     ContextOptimizerService,
-    MultiAgentCoordinatorService,
-    ContextMetricsService,
+    // MultiAgentCoordinatorService, // TODO: Implement
+    // ContextMetricsService, // TODO: Implement
   ],
 })
 export class ContextManagerModule {}

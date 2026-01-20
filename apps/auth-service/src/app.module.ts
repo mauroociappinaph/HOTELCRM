@@ -9,6 +9,7 @@ import { SecurityModule } from './modules/security/security.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { EtlModule } from './modules/etl/etl.module';
 import { DataQualityModule } from './modules/data-quality/data-quality.module';
+import { ContextManagerModule } from './modules/context-manager/context-manager.module';
 
 /**
  * Módulo raíz del microservicio de autenticación.
@@ -29,6 +30,7 @@ import { DataQualityModule } from './modules/data-quality/data-quality.module';
     MonitoringModule,
     EtlModule,
     DataQualityModule,
+    ContextManagerModule,
   ],
 })
 export class AppModule {}
