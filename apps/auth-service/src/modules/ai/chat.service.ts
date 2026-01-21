@@ -14,7 +14,7 @@ import {
   SemanticMemory,
   ProceduralMemory,
 } from '../context-manager/memory-manager.service';
-import { ContextOptimizerService } from '../context-manager/context-optimizer.service';
+import { PiiService } from '../security/pii.service';
 
 import { EmbeddingsService } from './embeddings.service';
 
@@ -29,6 +29,7 @@ export class ChatService {
     private readonly contextAssembler: ContextAssemblerService,
     private readonly memoryManager: MemoryManagerService,
     private readonly contextOptimizer: ContextOptimizerService,
+    private readonly piiService: PiiService,
   ) {
     this.openRouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -92,13 +93,19 @@ export class ChatService {
     };
   }> {
     try {
+      // 🛡️ SECURITY: Scrub PII from user message before processing
+      const safeMessage = this.piiService.scrub(message);
+      if (safeMessage !== message) {
+        this.logger.warn(`PII detected and scrubbed from user message in session ${sessionId}`);
+      }
+
       const client = this.supabaseService.getClient();
 
-      // Save user message
+      // Save user message (Safe version)
       await client.from('ai_chat_messages').insert({
         session_id: sessionId,
         role: 'user',
-        content: message,
+        content: safeMessage,
       });
 
       // 🧠 PHASE 1: Get conversation history for context
@@ -106,7 +113,7 @@ export class ChatService {
 
       // 🧠 PHASE 2: Search for relevant documents using embeddings
       const rawContextResults = await this.embeddingsService.searchSimilarDocuments(
-        message,
+        safeMessage, // Use safe message for search
         agencyId,
         20, // Get more results for better context selection
       );
@@ -129,7 +136,7 @@ export class ChatService {
       // 🧠 PHASE 4: Query memory systems for additional context
       const episodicMemories = await this.memoryManager.queryMemories({
         type: 'episodic',
-        query: message,
+        query: safeMessage,
         userId,
         sessionId,
         limit: 5,
@@ -137,14 +144,14 @@ export class ChatService {
 
       const semanticMemories = await this.memoryManager.queryMemories({
         type: 'semantic',
-        query: message,
+        query: safeMessage,
         userId,
         limit: 3,
       });
 
       const proceduralMemories = await this.memoryManager.queryMemories({
         type: 'procedural',
-        query: message,
+        query: safeMessage,
         userId,
         limit: 2,
       });
@@ -217,7 +224,7 @@ export class ChatService {
 
       // 🧠 PHASE 7: Create query context
       const queryContext: QueryContext = {
-        query: message,
+        query: safeMessage,
         userId,
         sessionId,
         conversationHistory: conversationHistory.map((h) => ({
@@ -226,7 +233,7 @@ export class ChatService {
           timestamp: new Date(h.created_at),
         })),
         domain: 'hotel_crm', // HOTELCRM specific domain
-        urgency: this.determineUrgency(message),
+        urgency: this.determineUrgency(safeMessage),
       };
 
       // 🧠 PHASE 8: Assemble optimized context
@@ -253,7 +260,7 @@ export class ChatService {
       const response = await this.openRouter.chat.send({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: message },
+          { role: 'user', content: safeMessage },
         ],
         model: model,
         stream: false,
@@ -276,7 +283,7 @@ export class ChatService {
         userId,
         sessionId,
         interactionType: 'conversation',
-        content: `User: ${message}\nAssistant: ${aiResponseStr}`,
+        content: `User: ${safeMessage}\nAssistant: ${aiResponseStr}`,
         context: {
           model,
           tokensUsed,
@@ -284,12 +291,12 @@ export class ChatService {
           compressionRatio: finalContext.compressionRatio,
         },
         outcome: 'success',
-        importance: this.calculateInteractionImportance(message, aiResponseStr),
+        importance: this.calculateInteractionImportance(safeMessage, aiResponseStr),
         timestamp: new Date(),
       });
 
       // 🧠 PHASE 12: Update semantic memory with new knowledge
-      await this.updateSemanticMemory(message, aiResponseStr, agencyId);
+      await this.updateSemanticMemory(safeMessage, aiResponseStr, agencyId);
 
       // Convert sources to expected format
       const sources = finalContext.chunks.slice(0, 5).map((chunk) => ({
@@ -344,7 +351,7 @@ export class ChatService {
         model_used: model,
         tokens_used: tokensUsed,
         cost_usd: estimatedCost,
-        request_data: { message, model, contextOptimization: true },
+        request_data: { message: safeMessage, model, contextOptimization: true },
         response_data: {
           response:
             typeof aiResponse === 'string'
