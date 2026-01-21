@@ -11,8 +11,8 @@
   - [x] Investigate multitenancy isolation in `searchSimilarDocuments` call on line 104 - **Fixed (Missing RPC Created with Isolation)**
   - [x] Investigate PII handling in `storeEpisodicMemory` on line 271 - **Fixed (Upstream Scrubbing)**
 - [x] SAST Recon on apps/auth-service/src/modules/ai/embeddings.service.ts
-  - [ ] Investigate PII leak to Voyage AI in `generateEmbeddings` on line 26
-  - [ ] Investigate multitenancy enforcement in `searchSimilarDocuments` on line 171
+  - [x] Investigate PII leak to Voyage AI in `generateEmbeddings` on line 26 - **Fixed (Service-level Scrubbing)**
+  - [x] Investigate multitenancy enforcement in `searchSimilarDocuments` on line 171 - **Verified (RPC Isolation)**
 - [x] SAST Recon on apps/auth-service/src/modules/context-manager/context-assembler.service.ts
   - [ ] Investigate risk of Cross-Tenant Data Leakage if input chunks are not isolated
   - [ ] Investigate potential for RAG Context Poisoning via metadata manipulation

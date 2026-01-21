@@ -3,6 +3,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenRouter } from '@openrouter/sdk';
 
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+import { PiiService } from '../security/pii.service';
 
 @Injectable()
 export class EmbeddingsService {
@@ -13,7 +14,10 @@ export class EmbeddingsService {
   private readonly BATCH_SIZE = 10; // Process 10 chunks at a time to avoid rate limits
   private readonly MAX_CONCURRENT_BATCHES = 3; // Allow up to 3 concurrent batches
 
-  constructor(private readonly supabaseService: SupabaseService) {
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly piiService: PiiService,
+  ) {
     this.openRouter = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
@@ -24,8 +28,11 @@ export class EmbeddingsService {
    */
   async generateEmbeddings(text: string): Promise<number[]> {
     try {
+      // 🛡️ SECURITY: Scrub PII before sending to external AI provider
+      const safeText = this.piiService.scrub(text);
+
       const response = await this.openRouter.embeddings.generate({
-        input: text,
+        input: safeText,
         model: 'voyageai/voyage-3-large',
       });
 
