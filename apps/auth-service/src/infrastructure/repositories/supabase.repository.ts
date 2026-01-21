@@ -340,8 +340,10 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
+        // Sanitize query to prevent PostgREST injection
+        const sanitizedQuery = query.query.replace(/[(),]/g, '');
         const searchConditions = query.fields.map(
-          (field: string) => `${field}.ilike.%${query.query}%`,
+          (field: string) => `${field}.ilike.%${sanitizedQuery}%`,
         );
         // Note: This is a simplified implementation. Real full-text search would be more complex
         dbQuery = dbQuery.or(searchConditions.join(','));
