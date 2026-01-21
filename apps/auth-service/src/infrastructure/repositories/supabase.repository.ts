@@ -55,12 +55,21 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
     protected readonly tableName: string,
   ) {}
 
+  /**
+   * Returns the default fields to select. Override in child classes to prevent sensitive data leakage.
+   * Default implementation returns '*' for backward compatibility during migration, 
+   * but should be restricted in concrete implementations.
+   */
+  protected getDefaultSelect(): string {
+    return '*';
+  }
+
   async findById(id: string): Promise<Option<T>> {
     try {
       const { data, error } = await this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select('*')
+        .select(this.getDefaultSelect())
         .eq('id', id)
         .single();
 
@@ -72,7 +81,7 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return { some: true, value: data as T };
+      return { some: true, value: data as unknown as T };
     } catch (error) {
       throw new Error(`Failed to find ${this.tableName} by id: ${getErrorMessage(error)}`);
     }
@@ -80,7 +89,7 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
 
   async findAll(filter?: Partial<T>): Promise<T[]> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select('*');
+      let query = this.supabaseService.getClient().from(this.tableName).select(this.getDefaultSelect());
 
       if (filter) {
         Object.entries(filter).forEach(([key, value]) => {
@@ -151,7 +160,7 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return { some: true, value: data as T };
+      return { some: true, value: data as unknown as T };
     } catch (error) {
       throw new Error(`Failed to update ${this.tableName}: ${getErrorMessage(error)}`);
     }
@@ -231,7 +240,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 {
   async findOne(filter: Partial<T>): Promise<Option<T>> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select('*');
+      let query = this.supabaseService.getClient().from(this.tableName).select(this.getDefaultSelect());
 
       Object.entries(filter).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -249,7 +258,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return { some: true, value: data as T };
+      return { some: true, value: data as unknown as T };
     } catch (error) {
       throw new Error(`Failed to find one ${this.tableName}: ${getErrorMessage(error)}`);
     }
@@ -257,8 +266,8 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 
   async findMany(filter: Partial<T>, options?: QueryOptions): Promise<T[]> {
     try {
-      // 🔧 OPTIMIZATION: Allow custom select fields to prevent over-fetching
-      const selectFields = options?.select || '*';
+      // 🔧 OPTIMIZATION: Allow custom select fields to prevent over-fetching, but default to safe fields
+      const selectFields = options?.select || this.getDefaultSelect();
       let query = this.supabaseService.getClient().from(this.tableName).select(selectFields);
 
       // Apply filters
@@ -336,7 +345,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       let dbQuery = this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select('*', { count: 'exact' });
+        .select(this.getDefaultSelect(), { count: 'exact' });
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
@@ -370,7 +379,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       }
 
       return {
-        items: (data || []) as T[],
+        items: (data || []) as unknown as T[],
         total: count || 0,
       };
     } catch (error) {
@@ -389,6 +398,10 @@ export class SupabaseChatRepository
 {
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'ai_chat_sessions');
+  }
+
+  protected getDefaultSelect(): string {
+    return 'id, agency_id, user_id, session_name, model_used, total_tokens, total_cost, created_at, updated_at';
   }
 
   async findByUserId(userId: string): Promise<ChatSession[]> {
@@ -439,7 +452,7 @@ export class SupabaseChatRepository
       let query = this.supabaseService
         .getClient()
         .from('ai_chat_messages')
-        .select('*')
+        .select(this.getDefaultSelect())
         .eq('sessionId', sessionId);
 
       if (options?.before) {
@@ -466,7 +479,7 @@ export class SupabaseChatRepository
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return (data || []) as ChatMessage[];
+      return (data || []) as unknown as ChatMessage[];
     } catch (error) {
       throw new Error(`Failed to get conversation history: ${getErrorMessage(error)}`);
     }
@@ -483,6 +496,10 @@ export class SupabaseBookingRepository
 {
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'bookings');
+  }
+
+  protected getDefaultSelect(): string {
+    return 'id, client_id, agency_id, itinerary_id, status, total_amount, currency, created_at, updated_at';
   }
 
   async findByUserId(userId: string): Promise<Booking[]> {
@@ -502,7 +519,7 @@ export class SupabaseBookingRepository
       const { data, error } = await this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select('*')
+        .select(this.getDefaultSelect())
         .eq('roomId', roomId)
         .or(
           `and(checkInDate.lt.${checkOut.toISOString()},checkOutDate.gt.${checkIn.toISOString()})`,
@@ -512,7 +529,7 @@ export class SupabaseBookingRepository
         throw new Error(`Database error: ${getErrorMessage(error)}`);
       }
 
-      return (data || []) as Booking[];
+      return (data || []) as unknown as Booking[];
     } catch (error) {
       throw new Error(`Failed to find conflicting bookings: ${getErrorMessage(error)}`);
     }
@@ -532,7 +549,11 @@ export class SupabaseUserRepository
   implements IUserRepository
 {
   constructor(supabaseService: SupabaseService) {
-    super(supabaseService, 'users');
+    super(supabaseService, 'profiles');
+  }
+
+  protected getDefaultSelect(): string {
+    return 'id, agency_id, role, full_name, created_at';
   }
 
   async findByEmail(email: string): Promise<Option<User>> {
@@ -559,7 +580,11 @@ export class SupabaseDocumentRepository
   implements IDocumentRepository
 {
   constructor(supabaseService: SupabaseService) {
-    super(supabaseService, 'ai_documents');
+    super(supabaseService, 'knowledge_documents');
+  }
+
+  protected getDefaultSelect(): string {
+    return 'id, category_id, agency_id, title, content, content_type, source_url, tags, metadata, created_at, updated_at';
   }
 
   async findByCategory(category: string): Promise<Document[]> {
