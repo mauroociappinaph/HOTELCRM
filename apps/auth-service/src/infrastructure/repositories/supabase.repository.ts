@@ -56,12 +56,21 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
   ) {}
 
   /**
-   * Returns the default fields to select. Override in child classes to prevent sensitive data leakage.
-   * Default implementation returns '*' for backward compatibility during migration, 
-   * but should be restricted in concrete implementations.
+   * Returns the default fields to select. Override in child classes.
+   * Returns an array of keys of T to ensure type safety.
    */
-  protected getDefaultSelect(): string {
-    return '*';
+  protected abstract getSelectedFields(): (keyof T)[];
+
+  /**
+   * Converts camelCase keys of T to snake_case for Supabase select string.
+   */
+  protected getSelectString(): string {
+    return this.getSelectedFields()
+      .map((field) => {
+        const snake = String(field).replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+        return snake === String(field) ? snake : `${snake}:${String(field)}`;
+      })
+      .join(', ');
   }
 
   async findById(id: string): Promise<Option<T>> {
@@ -69,13 +78,12 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
       const { data, error } = await this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select(this.getDefaultSelect())
+        .select(this.getSelectString())
         .eq('id', id)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Not found
           return { some: false, value: undefined };
         }
         throw new Error(`Database error: ${getErrorMessage(error)}`);
@@ -89,12 +97,13 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
 
   async findAll(filter?: Partial<T>): Promise<T[]> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select(this.getDefaultSelect());
+      let query = this.supabaseService.getClient().from(this.tableName).select(this.getSelectString());
 
       if (filter) {
         Object.entries(filter).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
+            const dbKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+            query = query.eq(dbKey, value);
           }
         });
       }
@@ -240,11 +249,12 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 {
   async findOne(filter: Partial<T>): Promise<Option<T>> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select(this.getDefaultSelect());
+      let query = this.supabaseService.getClient().from(this.tableName).select(this.getSelectString());
 
       Object.entries(filter).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
+          const dbKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+          query = query.eq(dbKey, value);
         }
       });
 
@@ -267,14 +277,15 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
   async findMany(filter: Partial<T>, options?: QueryOptions): Promise<T[]> {
     try {
       // 🔧 OPTIMIZATION: Allow custom select fields to prevent over-fetching, but default to safe fields
-      const selectFields = options?.select || this.getDefaultSelect();
+      const selectFields = options?.select || this.getSelectString();
       let query = this.supabaseService.getClient().from(this.tableName).select(selectFields);
 
       // Apply filters
       if (filter) {
         Object.entries(filter).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
+            const dbKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+            query = query.eq(dbKey, value);
           }
         });
       }
@@ -345,7 +356,7 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
       let dbQuery = this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select(this.getDefaultSelect(), { count: 'exact' });
+        .select(this.getSelectString(), { count: 'exact' });
 
       // Apply text search if fields specified
       if (query.fields && query.fields.length > 0) {
@@ -400,8 +411,18 @@ export class SupabaseChatRepository
     super(supabaseService, 'ai_chat_sessions');
   }
 
-  protected getDefaultSelect(): string {
-    return 'id, agency_id, user_id, session_name, model_used, total_tokens, total_cost, created_at, updated_at';
+  protected getSelectedFields(): (keyof ChatSession)[] {
+    return [
+      'id',
+      'agencyId',
+      'userId',
+      'title',
+      'status',
+      'metadata',
+      'lastActivity',
+      'createdAt',
+      'updatedAt',
+    ];
   }
 
   async findByUserId(userId: string): Promise<ChatSession[]> {
@@ -452,7 +473,7 @@ export class SupabaseChatRepository
       let query = this.supabaseService
         .getClient()
         .from('ai_chat_messages')
-        .select(this.getDefaultSelect())
+        .select(this.getSelectString())
         .eq('sessionId', sessionId);
 
       if (options?.before) {
@@ -498,8 +519,18 @@ export class SupabaseBookingRepository
     super(supabaseService, 'bookings');
   }
 
-  protected getDefaultSelect(): string {
-    return 'id, client_id, agency_id, itinerary_id, status, total_amount, currency, created_at, updated_at';
+  protected getSelectedFields(): (keyof Booking)[] {
+    return [
+      'id',
+      'clientId',
+      'agencyId',
+      'itineraryId',
+      'status',
+      'totalAmount',
+      'currency',
+      'createdAt',
+      'updatedAt',
+    ];
   }
 
   async findByUserId(userId: string): Promise<Booking[]> {
@@ -519,7 +550,7 @@ export class SupabaseBookingRepository
       const { data, error } = await this.supabaseService
         .getClient()
         .from(this.tableName)
-        .select(this.getDefaultSelect())
+        .select(this.getSelectString())
         .eq('roomId', roomId)
         .or(
           `and(checkInDate.lt.${checkOut.toISOString()},checkOutDate.gt.${checkIn.toISOString()})`,
@@ -552,8 +583,8 @@ export class SupabaseUserRepository
     super(supabaseService, 'profiles');
   }
 
-  protected getDefaultSelect(): string {
-    return 'id, agency_id, role, full_name, created_at';
+  protected getSelectedFields(): (keyof User)[] {
+    return ['id', 'agencyId', 'role', 'fullName', 'createdAt'];
   }
 
   async findByEmail(email: string): Promise<Option<User>> {
@@ -583,8 +614,17 @@ export class SupabaseDocumentRepository
     super(supabaseService, 'knowledge_documents');
   }
 
-  protected getDefaultSelect(): string {
-    return 'id, category_id, agency_id, title, content, content_type, source_url, tags, metadata, created_at, updated_at';
+  protected getSelectedFields(): (keyof Document)[] {
+    return [
+      'id',
+      'title',
+      'content',
+      'category',
+      'tags',
+      'metadata',
+      'createdAt',
+      'updatedAt',
+    ];
   }
 
   async findByCategory(category: string): Promise<Document[]> {

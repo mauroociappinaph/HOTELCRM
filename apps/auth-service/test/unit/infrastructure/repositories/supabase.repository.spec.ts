@@ -7,6 +7,10 @@ class TestRepository extends SupabaseQueryRepository<any> {
   constructor(supabaseService: SupabaseService) {
     super(supabaseService, 'test_table');
   }
+
+  protected getSelectedFields(): string[] {
+    return ['id', 'name', 'description'];
+  }
 }
 
 describe('SupabaseRepository (Security)', () => {
