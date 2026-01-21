@@ -5,3 +5,5 @@ export * from './booking.types';
 export * from './user.types';
 export * from './payments.types';
 export * from './video.types';
+export * from './repository.types';
+export * from './advanced-utils.types';

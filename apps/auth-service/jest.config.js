@@ -21,6 +21,8 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'mjs'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@hotel-crm/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    '^@hotel-crm/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
     '^@hotel-crm/(.*)$': '<rootDir>/../../packages/$1/src',
   },
   collectCoverageFrom: [
