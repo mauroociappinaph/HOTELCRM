@@ -16,7 +16,7 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@faker-js/faker|@testcontainers|testcontainers)/)',
+    'node_modules/(?!(@faker-js/faker|@testcontainers|testcontainers|@openrouter|@langchain)/)',
   ],
   moduleFileExtensions: ['ts', 'js', 'mjs'],
   moduleNameMapper: {

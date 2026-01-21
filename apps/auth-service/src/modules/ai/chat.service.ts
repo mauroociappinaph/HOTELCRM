@@ -14,6 +14,7 @@ import {
   SemanticMemory,
   ProceduralMemory,
 } from '../context-manager/memory-manager.service';
+import { ContextOptimizerService } from '../context-manager/context-optimizer.service';
 import { PiiService } from '../security/pii.service';
 
 import { EmbeddingsService } from './embeddings.service';
