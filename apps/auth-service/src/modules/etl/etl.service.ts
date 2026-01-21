@@ -259,8 +259,12 @@ export class EtlService implements OnModuleInit {
         try {
           // Determinar qué quality gate usar basado en el pipeline
           const gateId = this.getGateForPipeline(pipelineId);
+          
+          // 🛡️ SECURITY: Obtener agencyId del registro para asegurar aislamiento
+          const recordAgencyId = record.data.agency_id || record.data.agencyId || 'default-system-agency';
 
           const qualityResult = await this.dataQualityGate.validateRecord(
+            recordAgencyId,
             gateId,
             record.data, // Validar solo los datos, no el wrapper del record
             record.id,

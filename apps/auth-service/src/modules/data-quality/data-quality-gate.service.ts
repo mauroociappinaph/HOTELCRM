@@ -97,6 +97,7 @@ export class DataQualityGateService {
    * Validate a record through a quality gate
    */
   async validateRecord(
+    agencyId: string,
     gateId: string,
     record: any,
     recordId: string,
@@ -158,12 +159,12 @@ export class DataQualityGateService {
       if (!checks.overallResult && rejectedReason) {
         if (gate.quarantineEnabled) {
           await this.quarantineService.storeRejectedRecord({
+            agencyId,
             recordId,
             gateId,
             record,
             rejectionReason: rejectedReason,
             validationErrors: this.collectValidationErrors(checks),
-            quarantinedAt: new Date(),
             priority: this.calculatePriority(rejectedReason),
             context,
           });
@@ -195,12 +196,12 @@ export class DataQualityGateService {
 
       if (gate.quarantineEnabled) {
         await this.quarantineService.storeRejectedRecord({
+          agencyId,
           recordId,
           gateId,
           record,
           rejectionReason: rejectedReason,
           validationErrors: [{ error: error instanceof Error ? error.message : String(error) }],
-          quarantinedAt: new Date(),
           priority: this.calculatePriority(rejectedReason),
           context,
         });
@@ -235,6 +236,7 @@ export class DataQualityGateService {
    * Validate multiple records through a quality gate
    */
   async validateRecordsBatch(
+    agencyId: string,
     gateId: string,
     records: Array<{ record: any; recordId: string }>,
     context?: any,
@@ -242,14 +244,14 @@ export class DataQualityGateService {
   ): Promise<QualityGateResult[]> {
     if (parallelValidation) {
       const promises = records.map(({ record, recordId }) =>
-        this.validateRecord(gateId, record, recordId, context),
+        this.validateRecord(agencyId, gateId, record, recordId, context),
       );
       return Promise.all(promises);
     } else {
       const results: QualityGateResult[] = [];
       for (const { record, recordId } of records) {
         try {
-          const result = await this.validateRecord(gateId, record, recordId, context);
+          const result = await this.validateRecord(agencyId, gateId, record, recordId, context);
           results.push(result);
         } catch (error) {
           // For batch processing, we'll collect errors in results
