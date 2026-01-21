@@ -19,7 +19,7 @@
 - [x] SAST Recon on apps/auth-service/src/modules/context-manager/context-optimizer.service.ts
   - [ ] Investigate if `strategies` parameter in `optimizeContext` can be controlled by users
 - [x] SAST Recon on apps/auth-service/src/modules/context-manager/memory-manager.service.ts
-  - [ ] Investigate Cross-Tenant Data Leakage in Semantic Memory (Line 133)
+  - [x] Investigate Cross-Tenant Data Leakage in Semantic Memory (Line 133) - **Fixed (Tables created with RLS and AgencyId enforcement)**
   - [ ] Investigate Cross-Tenant Data Leakage in Procedural Memory (Line 182)
   - [ ] Investigate Privacy Violation in `applySelectiveForgetting` (Line 276)
 - [x] SAST Recon on apps/auth-service/src/modules/context-manager/multi-agent-coordinator.service.ts

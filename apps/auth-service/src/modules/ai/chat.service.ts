@@ -139,6 +139,7 @@ export class ChatService {
         type: 'episodic',
         query: safeMessage,
         userId,
+        agencyId,
         sessionId,
         limit: 5,
       });
@@ -147,6 +148,7 @@ export class ChatService {
         type: 'semantic',
         query: safeMessage,
         userId,
+        agencyId,
         limit: 3,
       });
 
@@ -154,6 +156,7 @@ export class ChatService {
         type: 'procedural',
         query: safeMessage,
         userId,
+        agencyId,
         limit: 2,
       });
 
@@ -282,6 +285,7 @@ export class ChatService {
       // 🧠 PHASE 11: Store interaction in episodic memory
       await this.memoryManager.storeEpisodicMemory({
         userId,
+        agencyId,
         sessionId,
         interactionType: 'conversation',
         content: `User: ${safeMessage}\nAssistant: ${aiResponseStr}`,
@@ -720,6 +724,7 @@ Urgency level: ${queryContext.urgency || 'normal'}`;
 
       for (const concept of concepts) {
         await this.memoryManager.storeSemanticMemory({
+          agencyId,
           concept: concept.name,
           category: concept.category,
           facts: [concept.fact],
