@@ -22,6 +22,7 @@
     "db:generate": "turbo run db:generate",
     "db:push": "turbo run db:push",
     "db:migrate": "turbo run db:migrate",
+    "gen:types": "supabase gen types typescript --local > packages/shared/src/types/database.types.ts",
     "prepare": "husky",
     "preinstall": "npx only-allow pnpm",
     "postinstall": "husky",
