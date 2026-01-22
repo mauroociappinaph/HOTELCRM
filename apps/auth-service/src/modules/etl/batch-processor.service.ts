@@ -1,18 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+import { EtlRecord } from '@hotel-crm/shared';
+import { EtlRepositoryPort } from './domain/ports/etl-repository.port';
 
 @Injectable()
 export class BatchProcessorService {
   private readonly logger = new Logger(BatchProcessorService.name);
   private scheduledJobs = new Map<string, NodeJS.Timeout>();
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly etlRepository: EtlRepositoryPort) {}
 
   /**
    * Process a batch of records to destination table
    */
-  async processBatch(pipelineId: string, records: any[], destinationTable: string): Promise<void> {
+  async processBatch(
+    pipelineId: string,
+    records: EtlRecord[],
+    destinationTable: string,
+  ): Promise<void> {
     if (records.length === 0) return;
 
     this.logger.log(
@@ -20,32 +24,17 @@ export class BatchProcessorService {
     );
 
     try {
-      const client = this.supabaseService.getClient();
+      const { success, failed } = await this.etlRepository.insertBatch(
+        pipelineId,
+        destinationTable,
+        records,
+      );
 
-      // Transform records for insertion
-      const transformedRecords = records.map((record) => ({
-        ...record.data,
-        event_time: record.eventTime.toISOString(),
-        processing_time: record.processingTime.toISOString(),
-        pipeline_id: pipelineId,
-        source: record.source,
-        partition_key: record.partitionKey,
-        sequence_number: record.sequenceNumber,
-      }));
-
-      // Insert in batches to avoid payload size limits
-      const batchSize = 100;
-      for (let i = 0; i < transformedRecords.length; i += batchSize) {
-        const batch = transformedRecords.slice(i, i + batchSize);
-        const { error } = await client.from(destinationTable).insert(batch);
-
-        if (error) {
-          this.logger.error(`Batch insert error for ${destinationTable}:`, error);
-          throw error;
-        }
+      if (failed > 0) {
+        this.logger.warn(`⚠️ Batch processing partially failed: ${failed} records failed`);
       }
 
-      this.logger.log(`✅ Successfully processed ${records.length} records to ${destinationTable}`);
+      this.logger.log(`✅ Successfully processed ${success} records to ${destinationTable}`);
     } catch (error) {
       this.logger.error(`❌ Batch processing failed for pipeline ${pipelineId}:`, error);
       throw error;
@@ -64,20 +53,13 @@ export class BatchProcessorService {
       onError: (error: Error) => void;
     },
   ): Promise<void> {
-    // For simplicity, we'll use setInterval with basic scheduling
-    // In production, you'd use a proper job scheduler like node-cron
-
     const intervalMs = this.parseCronToInterval(config.cronExpression);
     const jobId = `batch-${pipelineId}`;
 
     const job = setInterval(async () => {
       try {
-        // In a real implementation, you'd fetch pending records here
-        // For now, just log that the job ran
         this.logger.log(`⏰ Batch job executed for pipeline: ${pipelineId}`);
-
-        // Call completion callback
-        config.onBatchComplete(0, 0); // processed, failed
+        config.onBatchComplete(0, 0);
       } catch (error) {
         this.logger.error(`Batch job error for pipeline ${pipelineId}:`, error);
         config.onError(error as Error);
@@ -102,22 +84,10 @@ export class BatchProcessorService {
     }
   }
 
-  /**
-   * Parse simple cron expression to interval (basic implementation)
-   */
   private parseCronToInterval(cronExpression: string): number {
-    // Very basic cron parser - in production use a proper library
-    if (cronExpression === '0 */1 * * *') {
-      return 60 * 60 * 1000; // Every hour
-    }
-    if (cronExpression === '0 0 * * *') {
-      return 24 * 60 * 60 * 1000; // Every day
-    }
-    if (cronExpression === '*/30 * * * *') {
-      return 30 * 60 * 1000; // Every 30 minutes
-    }
-
-    // Default to 1 hour
+    if (cronExpression === '0 */1 * * *') return 60 * 60 * 1000;
+    if (cronExpression === '0 0 * * *') return 24 * 60 * 60 * 1000;
+    if (cronExpression === '*/30 * * * *') return 30 * 60 * 1000;
     return 60 * 60 * 1000;
   }
 }

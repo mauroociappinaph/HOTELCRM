@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+import { DataSourceMetadata, EtlRecord, IngestionFilters } from './interfaces/etl.interface';
 
 export interface DataSource {
   type: 'database' | 'api' | 'file' | 'stream';
@@ -20,7 +21,7 @@ export class DataIngestionService {
   /**
    * Ingest data from various sources
    */
-  async ingestData(source: DataSource, filters?: Record<string, any>): Promise<any[]> {
+  async ingestData(source: DataSource, filters?: IngestionFilters): Promise<EtlRecord[]> {
     switch (source.type) {
       case 'database':
         return this.ingestFromDatabase(source, filters);
@@ -40,8 +41,8 @@ export class DataIngestionService {
    */
   private async ingestFromDatabase(
     source: DataSource,
-    filters?: Record<string, any>,
-  ): Promise<any[]> {
+    filters?: IngestionFilters,
+  ): Promise<EtlRecord[]> {
     const client = this.supabaseService.getClient();
 
     if (!source.tableName) {
@@ -53,7 +54,9 @@ export class DataIngestionService {
     // Apply filters
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
+        if (key !== 'startDate' && key !== 'endDate' && key !== 'categories' && key !== 'status') {
+          query = query.eq(key, value);
+        }
       });
     }
 
@@ -65,13 +68,14 @@ export class DataIngestionService {
     }
 
     this.logger.log(`📊 Ingested ${data?.length || 0} records from table: ${source.tableName}`);
-    return data || [];
+
+    return (data || []).map((record) => this.mapToEtlRecord(record, source.tableName!));
   }
 
   /**
    * Ingest data from API
    */
-  private async ingestFromApi(source: DataSource, filters?: Record<string, any>): Promise<any[]> {
+  private async ingestFromApi(source: DataSource, filters?: IngestionFilters): Promise<EtlRecord[]> {
     if (!source.apiEndpoint) {
       throw new Error('API endpoint is required for API ingestion');
     }
@@ -89,13 +93,18 @@ export class DataIngestionService {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
-      const data: any = await response.json();
+      const rawData = (await response.json()) as Record<string, unknown> | Array<Record<string, unknown>>;
 
       // Handle different response formats
-      const records = Array.isArray(data) ? data : data.data || [data];
+      const records = Array.isArray(rawData) 
+        ? rawData 
+        : ((rawData as Record<string, unknown>).data as Array<Record<string, unknown>>) || [rawData];
 
       this.logger.log(`🌐 Ingested ${records.length} records from API: ${source.apiEndpoint}`);
-      return records;
+
+      return records.map((record: Record<string, unknown>) =>
+        this.mapToEtlRecord(record, source.apiEndpoint!),
+      );
     } catch (error) {
       this.logger.error(`API ingestion error for endpoint ${source.apiEndpoint}:`, error);
       throw error;
@@ -105,7 +114,10 @@ export class DataIngestionService {
   /**
    * Ingest data from file
    */
-  private async ingestFromFile(source: DataSource, filters?: Record<string, any>): Promise<any[]> {
+  private async ingestFromFile(
+    source: DataSource,
+    filters?: IngestionFilters,
+  ): Promise<EtlRecord[]> {
     if (!source.filePath) {
       throw new Error('File path is required for file ingestion');
     }
@@ -120,8 +132,8 @@ export class DataIngestionService {
    */
   private async ingestFromStream(
     source: DataSource,
-    filters?: Record<string, any>,
-  ): Promise<any[]> {
+    filters?: IngestionFilters,
+  ): Promise<EtlRecord[]> {
     if (!source.streamTopic) {
       throw new Error('Stream topic is required for stream ingestion');
     }
@@ -152,8 +164,8 @@ export class DataIngestionService {
   /**
    * Get data source metadata
    */
-  async getDataSourceMetadata(source: DataSource): Promise<Record<string, any>> {
-    const metadata: Record<string, any> = {
+  async getDataSourceMetadata(source: DataSource): Promise<DataSourceMetadata> {
+    const metadata: DataSourceMetadata = {
       type: source.type,
       validated: this.validateDataSource(source),
       timestamp: new Date().toISOString(),
@@ -166,12 +178,26 @@ export class DataIngestionService {
           .from(source.tableName)
           .select('*', { count: 'exact', head: true });
 
-        metadata.recordCount = count;
-      } catch (error: any) {
-        metadata.error = error?.message || 'Unknown error';
+        metadata.totalRecords = count ?? undefined;
+      } catch (error) {
+        const err = error as Error;
+        metadata.error = err?.message || 'Unknown error';
       }
     }
 
     return metadata;
+  }
+
+  /**
+   * Helper to map raw data to EtlRecord
+   */
+  private mapToEtlRecord(data: Record<string, unknown>, source: string): EtlRecord {
+    return {
+      id: (data.id as string) || (data._id as string) || crypto.randomUUID(),
+      eventTime: data.updated_at ? new Date(data.updated_at as string) : new Date(),
+      processingTime: new Date(),
+      data,
+      source,
+    };
   }
 }

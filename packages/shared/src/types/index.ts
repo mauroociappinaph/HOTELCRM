@@ -8,3 +8,5 @@ export * from './video.types';
 export * from './repository.types';
 export * from './advanced-utils.types';
 export * from './auth.types';
+export * from './memory.types';
+export * from './etl.types';

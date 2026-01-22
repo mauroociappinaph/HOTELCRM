@@ -1,6 +1,5 @@
 /**
- * ETL Module Interfaces
- * Strictly typed definitions for data processing pipelines
+ * ETL and Data Engineering Types for HOTELCRM
  */
 
 export interface EtlRecord<T = Record<string, unknown>> {

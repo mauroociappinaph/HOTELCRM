@@ -11,6 +11,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { EtlModule } from './modules/etl/etl.module';
 import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { ContextManagerModule } from './modules/context-manager/context-manager.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
 
 /**
  * Módulo raíz del microservicio de autenticación.
@@ -32,6 +33,7 @@ import { ContextManagerModule } from './modules/context-manager/context-manager.
     EtlModule,
     DataQualityModule,
     ContextManagerModule,
+    BookingsModule,
   ],
 })
 export class AppModule {}

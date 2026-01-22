@@ -9,6 +9,14 @@ import { User, UserRole } from './user.types';
 import { Agency } from './agency.types';
 import { Client } from './client.types';
 import { Payment } from './payments.types';
+import {
+  EpisodicMemory,
+  SemanticMemory,
+  ProceduralMemory,
+  MemoryQuery,
+  MemoryResult,
+} from './memory.types';
+import { EtlRecord, EtlJob, EtlPipelineConfig } from './etl.types';
 
 /**
  * Base repository interface with CRUD operations
@@ -69,6 +77,33 @@ export interface IDocumentRepository extends IQueryRepository<Document> {
   findByCategory(category: string): Promise<Document[]>;
   searchByContent(query: string): Promise<Document[]>;
   findSimilar(documentId: string, limit?: number): Promise<Document[]>;
+}
+
+export interface IMemoryRepository {
+  // Episodic Memory
+  storeEpisodic(memory: Omit<EpisodicMemory, 'id' | 'createdAt' | 'updatedAt' | 'consolidationCount' | 'lastAccessed' | 'accessCount'>): Promise<string>;
+  queryEpisodic(query: MemoryQuery): Promise<MemoryResult[]>;
+  consolidateEpisodic(userId: string, agencyId: string, threshold: number): Promise<void>;
+
+  // Semantic Memory
+  storeSemantic(memory: Omit<SemanticMemory, 'id' | 'createdAt' | 'updatedAt' | 'accessCount'>): Promise<string>;
+  querySemantic(query: MemoryQuery): Promise<MemoryResult[]>;
+
+  // Procedural Memory
+  storeProcedural(memory: Omit<ProceduralMemory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsed' | 'usageCount'>): Promise<string>;
+  queryProcedural(query: MemoryQuery): Promise<MemoryResult[]>;
+}
+
+export interface IEtlRepository {
+  insertBatch(
+    pipelineId: string,
+    table: string,
+    records: EtlRecord[],
+  ): Promise<{ success: number; failed: number }>;
+  
+  saveJob(job: EtlJob): Promise<void>;
+  getJob(jobId: string): Promise<Option<EtlJob>>;
+  updateJobStatus(jobId: string, status: EtlJob['status'], error?: string): Promise<void>;
 }
 
 /**

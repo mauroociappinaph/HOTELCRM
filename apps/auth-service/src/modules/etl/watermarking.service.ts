@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EtlRecord } from './interfaces/etl.interface';
 
 @Injectable()
 export class WatermarkingService {
@@ -41,9 +42,9 @@ export class WatermarkingService {
    */
   async applyWatermark(
     pipelineId: string,
-    records: any[],
+    records: EtlRecord[],
     watermarkDelayMinutes: number,
-  ): Promise<any[]> {
+  ): Promise<EtlRecord[]> {
     const watermark = await this.getWatermark(pipelineId);
     const delayedWatermark = new Date(watermark.getTime() - watermarkDelayMinutes * 60 * 1000);
 

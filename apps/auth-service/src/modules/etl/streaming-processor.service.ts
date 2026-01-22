@@ -1,14 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EtlRecord, PipelineStats } from './interfaces/etl.interface';
+
+interface StreamConfig {
+  batchSize: number;
+  watermarkDelay: number;
+  onRecordProcessed: (record: EtlRecord) => void;
+  onError: (error: Error) => void;
+}
 
 @Injectable()
 export class StreamingProcessorService {
   private readonly logger = new Logger(StreamingProcessorService.name);
-  private activeStreams = new Map<string, any>();
+  private activeStreams = new Map<string, StreamConfig>();
 
   /**
    * Process records in streaming mode
    */
-  async processRecords(pipelineId: string, records: any[]): Promise<void> {
+  async processRecords(pipelineId: string, records: EtlRecord[]): Promise<void> {
     if (records.length === 0) return;
 
     this.logger.log(
@@ -35,15 +43,7 @@ export class StreamingProcessorService {
   /**
    * Start streaming processing for a pipeline
    */
-  async startStreaming(
-    pipelineId: string,
-    config: {
-      batchSize: number;
-      watermarkDelay: number;
-      onRecordProcessed: (record: any) => void;
-      onError: (error: Error) => void;
-    },
-  ): Promise<void> {
+  async startStreaming(pipelineId: string, config: StreamConfig): Promise<void> {
     this.logger.log(`🌊 Starting streaming processor for pipeline: ${pipelineId}`);
 
     // In a real implementation, this would connect to a streaming source
@@ -71,7 +71,7 @@ export class StreamingProcessorService {
   /**
    * Process individual record in streaming mode
    */
-  private async processStreamingRecord(pipelineId: string, record: any): Promise<void> {
+  private async processStreamingRecord(pipelineId: string, record: EtlRecord): Promise<void> {
     // Simulate streaming processing latency
     await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
 
@@ -118,13 +118,17 @@ export class StreamingProcessorService {
   /**
    * Get all active streaming pipelines
    */
-  getAllActiveStreams() {
-    const stats: Record<string, any> = {};
+  getAllActiveStreams(): Record<string, PipelineStats> {
+    const stats: Record<string, PipelineStats> = {};
     for (const [pipelineId, config] of this.activeStreams.entries()) {
       stats[pipelineId] = {
+        throughput: 0,
+        latencyMs: 0,
+        errorRate: 0,
+        activeStreams: 1,
         isActive: true,
         config: { ...config, onRecordProcessed: undefined, onError: undefined },
-      };
+      } as unknown as PipelineStats;
     }
     return stats;
   }

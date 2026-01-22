@@ -18,6 +18,7 @@ import { ContextOptimizerService } from '../context-manager/context-optimizer.se
 import { PiiService } from '../security/pii.service';
 
 import { EmbeddingsService } from './embeddings.service';
+import { ChatHistoryResponse, ChatMessage, ChatSession } from './interfaces/chat.interface';
 
 @Injectable()
 export class ChatService {
@@ -233,8 +234,8 @@ export class ChatService {
         sessionId,
         conversationHistory: conversationHistory.map((h) => ({
           role: h.role as 'user' | 'assistant',
-          content: h.content,
-          timestamp: new Date(h.created_at),
+          content: h.content as string,
+          timestamp: new Date(h.created_at as string),
         })),
         domain: 'hotel_crm', // HOTELCRM specific domain
         urgency: this.determineUrgency(safeMessage),
@@ -401,7 +402,7 @@ export class ChatService {
       content: string;
       created_at: string;
       tokens_used?: number;
-      metadata?: any;
+      metadata?: Record<string, unknown>;
     }>
   > {
     try {
@@ -417,7 +418,14 @@ export class ChatService {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map((msg: Record<string, unknown>) => ({
+        id: msg.id as string,
+        role: msg.role as string,
+        content: msg.content as string,
+        created_at: msg.created_at as string,
+        tokens_used: msg.tokens_used as number | undefined,
+        metadata: msg.metadata as Record<string, unknown> | undefined,
+      }));
     } catch (error) {
       this.logger.error('Error getting session history:', error);
       throw new Error('Failed to get session history');
@@ -454,12 +462,12 @@ export class ChatService {
         throw error;
       }
 
-      return (data || []).map((session: any) => ({
-        id: session.id,
-        session_name: session.session_name,
-        created_at: session.created_at,
-        total_tokens: session.total_tokens || 0,
-        total_cost: session.total_cost || 0,
+      return (data || []).map((session: Record<string, unknown>) => ({
+        id: session.id as string,
+        session_name: session.session_name as string | undefined,
+        created_at: session.created_at as string,
+        total_tokens: (session.total_tokens as number) || 0,
+        total_cost: (session.total_cost as number) || 0,
       }));
     } catch (error) {
       this.logger.error('Error getting user sessions:', error);
@@ -523,8 +531,11 @@ export class ChatService {
       const recommendations = [];
 
       if (stats && stats.length > 0) {
-        const totalRevenue = stats.reduce((sum, booking) => sum + booking.total_amount, 0);
-        const completedBookings = stats.filter((b) => b.status === 'completed').length;
+        const totalRevenue = stats.reduce(
+          (sum: number, booking: any) => sum + (booking.total_amount as number),
+          0,
+        );
+        const completedBookings = stats.filter((b: any) => b.status === 'completed').length;
 
         if (totalRevenue > 50000) {
           recommendations.push({
@@ -573,7 +584,9 @@ export class ChatService {
   /**
    * Get conversation history for context
    */
-  private async getConversationHistory(sessionId: string): Promise<any[]> {
+  private async getConversationHistory(
+    sessionId: string,
+  ): Promise<Array<Record<string, unknown>>> {
     try {
       const client = this.supabaseService.getClient();
       const { data, error } = await client
@@ -584,7 +597,7 @@ export class ChatService {
         .limit(10); // Last 10 messages for context
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<Record<string, unknown>>;
     } catch (error) {
       this.logger.warn('Error getting conversation history:', error);
       return [];

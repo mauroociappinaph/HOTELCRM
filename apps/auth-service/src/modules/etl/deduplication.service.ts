@@ -33,7 +33,7 @@ export class DeduplicationService {
   /**
    * Extract unique identifier from record
    */
-  private getRecordId(record: EtlRecord<any>): string {
+  private getRecordId(record: EtlRecord<unknown>): string {
     // Try different ID fields
     return (
       record.id ||
