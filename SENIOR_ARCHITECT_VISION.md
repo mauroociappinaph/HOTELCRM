@@ -147,7 +147,12 @@ Ideas disruptivas: Anticipatory Event Engine y Zero-Knowledge Identity.
 ---
 
 ## 22. Technical Debt Analysis: Salud y Refactorización (Refactor Specialist)
-Auditoría y plan de acción para el código actual (Limpieza de directorios " 2").
+Auditoría y plan de acción para el código actual.
+
+### Plan de Refactorización (Estrategia 2026)
+*   **Fase 1 (Sanitización): ✅ COMPLETADO.** Limpieza de redundancias en el sistema de archivos (" 2" directories) y estandarización de scripts de raíz.
+*   **Fase 2 (Abstracción de Persistencia - Q1):** Implementar puertos y adaptadores en NestJS para aislar la lógica de negocio de Supabase (Arquitectura Hexagonal).
+*   **Fase 3 (Auto-Typing - Q2):** Generación automática de tipos TS desde el esquema de base de datos.
 
 ---
 
