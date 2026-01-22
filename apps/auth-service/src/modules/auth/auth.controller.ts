@@ -83,15 +83,16 @@ export class AuthController {
   @Post('logout')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cerrar sesión' })
-  async signOut(@Headers('authorization') authHeader?: string) {
-    const token = authHeader?.replace('Bearer ', '');
-    return this.authService.signOut(token);
+  async signOut() {
+    return this.authService.signOut();
   }
 
   /**
    * Actualiza el perfil del usuario.
    */
   @Put('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar perfil del usuario' })
   async updateProfile(
     @Headers('authorization') authHeader: string,
     @Body()
@@ -108,6 +109,10 @@ export class AuthController {
     const token = authHeader.replace('Bearer ', '');
     const user = await this.authService.getCurrentUser(token);
 
+    if (!user?.id) {
+      throw new UnauthorizedException('User profile not found');
+    }
+
     return this.authService.updateProfile(user.id, updates);
   }
 
@@ -115,6 +120,8 @@ export class AuthController {
    * Lista usuarios de una agencia (solo para admins).
    */
   @Get('agency/:agencyId/users')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar usuarios de una agencia' })
   async listAgencyUsers(
     @Param('agencyId') agencyId: string,
     @Headers('authorization') authHeader: string,
@@ -126,14 +133,18 @@ export class AuthController {
     const token = authHeader.replace('Bearer ', '');
     const user = await this.authService.getCurrentUser(token);
 
+    if (!user?.id) {
+      throw new UnauthorizedException('User profile not found');
+    }
+
     return this.authService.listAgencyUsers(agencyId, user.id);
   }
 
   /**
    * Callback endpoint para OAuth (usado por frontend).
-   * Este endpoint maneja el callback de OAuth y redirige al frontend.
    */
   @Get('callback')
+  @ApiOperation({ summary: 'Callback de OAuth' })
   async handleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
@@ -147,15 +158,11 @@ export class AuthController {
       throw new UnauthorizedException('Authorization code required');
     }
 
-    // En una implementación real, aquí validarías el código con Supabase
-    // y generarías tokens JWT para el frontend
-
     return {
       success: true,
       message: 'OAuth callback handled successfully',
       code: code,
       state: state,
-      // En producción, aquí devolverías tokens JWT
       redirectTo: process.env.FRONTEND_URL || 'http://localhost:3000',
     };
   }
@@ -164,31 +171,8 @@ export class AuthController {
    * Refresh token endpoint.
    */
   @Post('refresh')
+  @ApiOperation({ summary: 'Refrescar sesión con refresh token' })
   async refreshToken(@Body() body: { refreshToken: string }) {
-    try {
-      const client = this.authService['supabaseService'].getClient();
-
-      const { data, error } = await client.auth.refreshSession({
-        refresh_token: body.refreshToken,
-      });
-
-      if (error) {
-        throw new UnauthorizedException(`Refresh failed: ${error.message}`);
-      }
-
-      return {
-        success: true,
-        session: {
-          access_token: data.session?.access_token,
-          refresh_token: data.session?.refresh_token,
-          expires_at: data.session?.expires_at,
-        },
-        user: data.user,
-      };
-    } catch (error) {
-      throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Token refresh failed',
-      );
-    }
+    return this.authService.refreshSession(body.refreshToken);
   }
 }

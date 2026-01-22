@@ -1,10 +1,13 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { AuthProviderPort } from './domain/ports/auth-provider.port';
 
-import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
-
+/**
+ * Guardián de autenticación basado en el puerto de identidad.
+ * Valida el token JWT a través del adaptador configurado.
+ */
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly authProvider: AuthProviderPort) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -17,19 +20,14 @@ export class SupabaseAuthGuard implements CanActivate {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
-      const client = this.supabaseService.getClient();
+      // Validar el token a través del puerto
+      const user = await this.authProvider.getCurrentUser(token);
 
-      // Verify the JWT token with Supabase
-      const {
-        data: { user },
-        error,
-      } = await client.auth.getUser(token);
-
-      if (error || !user) {
+      if (!user) {
         return false;
       }
 
-      // Attach user to request object
+      // Adjuntar el usuario al objeto request
       request.user = user;
       return true;
     } catch (error) {
