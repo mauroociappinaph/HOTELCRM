@@ -20,6 +20,8 @@ import {
   EtlRecord,
 } from './interfaces/etl.interface';
 
+export { EtlPipelineConfig, EtlJob, EtlRecord };
+
 @Injectable()
 export class EtlService implements OnModuleInit {
   private readonly logger = new Logger(EtlService.name);
