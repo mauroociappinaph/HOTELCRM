@@ -25,14 +25,14 @@ export type DeepPartial<T> = {
  * Extract keys of properties that are functions
  */
 export type FunctionKeys<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? K : never;
+  [K in keyof T]: T[K] extends (...args: unknown[]) => unknown ? K : never;
 }[keyof T];
 
 /**
  * Extract keys of properties that are not functions
  */
 export type NonFunctionKeys<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? never : K;
+  [K in keyof T]: T[K] extends (...args: unknown[]) => unknown ? never : K;
 }[keyof T];
 
 /**
@@ -57,12 +57,12 @@ export type ArrayElement<T> = T extends (infer U)[] ? U : never;
 /**
  * Extract return type from function type
  */
-export type ReturnTypeOf<T> = T extends (...args: any[]) => infer R ? R : never;
+export type ReturnTypeOf<T> = T extends (...args: unknown[]) => infer R ? R : never;
 
 /**
  * Extract parameters from function type
  */
-export type ParametersOf<T> = T extends (...args: infer P) => any ? P : never;
+export type ParametersOf<T> = T extends (...args: infer P) => unknown ? P : never;
 
 /**
  * Check if two types are exactly equal
@@ -73,7 +73,7 @@ export type Equals<X, Y> =
 /**
  * Flatten nested arrays
  */
-export type Flatten<T> = T extends (infer U)[] ? (U extends any[] ? Flatten<U> : U) : T;
+export type Flatten<T> = T extends (infer U)[] ? (U extends unknown[] ? Flatten<U> : U) : T;
 
 /**
  * Get union of all values in an object
@@ -108,7 +108,7 @@ export type Option<T> = { some: true; value: T } | { some: false; value: undefin
 /**
  * Type-safe Event Emitter with discriminated unions
  */
-export interface TypedEventEmitter<TEvents extends Record<string, any>> {
+export interface TypedEventEmitter<TEvents extends Record<string, unknown>> {
   on<K extends keyof TEvents>(event: K, listener: (payload: TEvents[K]) => void): void;
   off<K extends keyof TEvents>(event: K, listener: (payload: TEvents[K]) => void): void;
   emit<K extends keyof TEvents>(event: K, payload: TEvents[K]): void;
@@ -128,23 +128,23 @@ export interface Repository<T, TId = string> {
 /**
  * CQRS Pattern types
  */
-export interface Command<T = any> {
+export interface Command<T = unknown> {
   readonly type: string;
   readonly payload: T;
-  readonly metadata?: Record<string, any>;
+  readonly metadata?: Record<string, unknown>;
 }
 
-export interface Query<T = any> {
+export interface Query<T = unknown> {
   readonly type: string;
   readonly payload: T;
-  readonly metadata?: Record<string, any>;
+  readonly metadata?: Record<string, unknown>;
 }
 
-export interface CommandHandler<TCommand extends Command, TResult = void> {
+export interface CommandHandler<TCommand extends Command<unknown>, TResult = void> {
   execute(command: TCommand): Promise<TResult>;
 }
 
-export interface QueryHandler<TQuery extends Query, TResult> {
+export interface QueryHandler<TQuery extends Query<unknown>, TResult> {
   execute(query: TQuery): Promise<TResult>;
 }
 
@@ -198,7 +198,7 @@ export function isNumber(value: unknown): value is number {
 /**
  * Type guard for objects (not null, not array)
  */
-export function isObject(value: unknown): value is Record<string, any> {
+export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -216,7 +216,7 @@ export function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
 /**
  * Simple object merge (shallow)
  */
-export function mergeObjects<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+export function mergeObjects<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
   return { ...target, ...source };
 }
 

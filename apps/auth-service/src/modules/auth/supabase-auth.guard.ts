@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+
 import { AuthProviderPort } from './domain/ports/auth-provider.port';
 
 /**

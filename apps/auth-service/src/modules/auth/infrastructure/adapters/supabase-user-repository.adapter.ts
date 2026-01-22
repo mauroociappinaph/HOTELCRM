@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+
 import { UserRepositoryPort, UserProfile } from '../../domain/ports/user-repository.port';
 import { SupabaseService } from '../../../../infrastructure/supabase/supabase.service';
 
@@ -16,14 +17,16 @@ export class SupabaseUserRepositoryAdapter implements UserRepositoryPort {
     // Obtener perfil extendido de la tabla profiles
     const { data: profile, error: profileError } = await client
       .from('profiles')
-      .select(`
+      .select(
+        `
         *,
         agencies:agency_id (
           id,
           name,
           tax_id
         )
-      `)
+      `,
+      )
       .eq('id', userId)
       .single();
 
@@ -76,11 +79,7 @@ export class SupabaseUserRepositoryAdapter implements UserRepositoryPort {
       if (error) throw error;
       result = data;
     } else {
-      const { data, error } = await client
-        .from('profiles')
-        .insert(profileData)
-        .select()
-        .single();
+      const { data, error } = await client.from('profiles').insert(profileData).select().single();
 
       if (error) throw error;
       result = data;
@@ -97,7 +96,8 @@ export class SupabaseUserRepositoryAdapter implements UserRepositoryPort {
 
     const { data: users, error: usersError } = await client
       .from('profiles')
-      .select(`
+      .select(
+        `
         id,
         full_name,
         role,
@@ -106,7 +106,8 @@ export class SupabaseUserRepositoryAdapter implements UserRepositoryPort {
           name,
           tax_id
         )
-      `)
+      `,
+      )
       .eq('agency_id', agencyId);
 
     if (usersError) throw usersError;

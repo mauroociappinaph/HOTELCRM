@@ -1,23 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield,
   AlertTriangle,
   Activity,
-  Users,
   Settings,
   Bell,
-  Eye,
   Lock,
   Zap,
   BarChart3,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SecurityStats {
   totalEvents: number;
@@ -128,20 +127,29 @@ export default function SecurityDashboard() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'critical':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-red-100 text-red-800';
-      case 'acknowledged': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-red-100 text-red-800';
+      case 'acknowledged':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'resolved':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -164,11 +172,16 @@ export default function SecurityDashboard() {
             <Shield className="h-8 w-8 text-blue-600" />
             Security Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">
-            Monitor and manage HOTELCRM security in real-time
-          </p>
+          <p className="text-gray-600 mt-2">Monitor and manage HOTELCRM security in real-time</p>
         </div>
-        <Button onClick={() => { fetchStats(); fetchEvents(); fetchAlerts(); }} variant="outline">
+        <Button
+          onClick={() => {
+            fetchStats();
+            fetchEvents();
+            fetchAlerts();
+          }}
+          variant="outline"
+        >
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -194,9 +207,7 @@ export default function SecurityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{stats?.activeAlerts || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.criticalAlerts || 0} critical
-            </p>
+            <p className="text-xs text-muted-foreground">{stats?.criticalAlerts || 0} critical</p>
           </CardContent>
         </Card>
 
@@ -217,7 +228,9 @@ export default function SecurityDashboard() {
             <Lock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats?.rateLimitHitsToday || 0}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats?.rateLimitHitsToday || 0}
+            </div>
             <p className="text-xs text-muted-foreground">Requests blocked</p>
           </CardContent>
         </Card>
@@ -245,19 +258,27 @@ export default function SecurityDashboard() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Middleware Active</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">✅ ON</Badge>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    ✅ ON
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Attack Detection</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">✅ ON</Badge>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    ✅ ON
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Rate Limiting</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">✅ ON</Badge>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    ✅ ON
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Circuit Breaker</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">✅ ON</Badge>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    ✅ ON
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
@@ -275,7 +296,11 @@ export default function SecurityDashboard() {
                   <Bell className="h-4 w-4 mr-2" />
                   Send Test Alert
                 </Button>
-                <Button onClick={() => window.open('/api/security?action=stats&range=1h', '_blank')} variant="outline" className="w-full">
+                <Button
+                  onClick={() => window.open('/api/security?action=stats&range=1h', '_blank')}
+                  variant="outline"
+                  className="w-full"
+                >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   View API Stats
                 </Button>
@@ -296,20 +321,26 @@ export default function SecurityDashboard() {
             <CardContent>
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {events.slice(0, 20).map((event) => (
-                  <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <Badge className={`${getSeverityColor(event.severity)} text-white`}>
                         {event.severity}
                       </Badge>
                       <div>
-                        <p className="font-medium">{event.event_type.replace('_', ' ').toUpperCase()}</p>
+                        <p className="font-medium">
+                          {event.event_type.replace('_', ' ').toUpperCase()}
+                        </p>
                         <p className="text-sm text-gray-500">
                           {event.source_ip} → {event.request_path}
                         </p>
                         {event.attack_pattern && (
                           <p className="text-xs text-red-600">
                             Pattern: {event.attack_pattern}
-                            {event.confidence_score && ` (${Math.round(event.confidence_score * 100)}% confidence)`}
+                            {event.confidence_score &&
+                              ` (${Math.round(event.confidence_score * 100)}% confidence)`}
                           </p>
                         )}
                       </div>
@@ -347,9 +378,7 @@ export default function SecurityDashboard() {
                   <div key={alert.id} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(alert.status)}>
-                          {alert.status}
-                        </Badge>
+                        <Badge className={getStatusColor(alert.status)}>{alert.status}</Badge>
                         <Badge className={`${getSeverityColor(alert.severity)} text-white`}>
                           {alert.severity}
                         </Badge>

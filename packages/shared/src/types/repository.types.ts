@@ -3,12 +3,9 @@
  * Enterprise-grade data access abstractions with type safety
  */
 
-import { Option, Result } from './advanced-utils.types';
+import { Option } from './advanced-utils.types';
 import { Booking, BookingStatus } from './booking.types';
-import { User, UserRole } from './user.types';
-import { Agency } from './agency.types';
-import { Client } from './client.types';
-import { Payment } from './payments.types';
+import { User } from './user.types';
 import {
   EpisodicMemory,
   SemanticMemory,
@@ -16,7 +13,7 @@ import {
   MemoryQuery,
   MemoryResult,
 } from './memory.types';
-import { EtlRecord, EtlJob, EtlPipelineConfig } from './etl.types';
+import { EtlRecord, EtlJob } from './etl.types';
 
 /**
  * Base repository interface with CRUD operations
@@ -81,16 +78,25 @@ export interface IDocumentRepository extends IQueryRepository<Document> {
 
 export interface IMemoryRepository {
   // Episodic Memory
-  storeEpisodic(memory: Omit<EpisodicMemory, 'id' | 'createdAt' | 'updatedAt' | 'consolidationCount' | 'lastAccessed' | 'accessCount'>): Promise<string>;
+  storeEpisodic(
+    memory: Omit<
+      EpisodicMemory,
+      'id' | 'createdAt' | 'updatedAt' | 'consolidationCount' | 'lastAccessed' | 'accessCount'
+    >,
+  ): Promise<string>;
   queryEpisodic(query: MemoryQuery): Promise<MemoryResult[]>;
   consolidateEpisodic(userId: string, agencyId: string, threshold: number): Promise<void>;
 
   // Semantic Memory
-  storeSemantic(memory: Omit<SemanticMemory, 'id' | 'createdAt' | 'updatedAt' | 'accessCount'>): Promise<string>;
+  storeSemantic(
+    memory: Omit<SemanticMemory, 'id' | 'createdAt' | 'updatedAt' | 'accessCount'>,
+  ): Promise<string>;
   querySemantic(query: MemoryQuery): Promise<MemoryResult[]>;
 
   // Procedural Memory
-  storeProcedural(memory: Omit<ProceduralMemory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsed' | 'usageCount'>): Promise<string>;
+  storeProcedural(
+    memory: Omit<ProceduralMemory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsed' | 'usageCount'>,
+  ): Promise<string>;
   queryProcedural(query: MemoryQuery): Promise<MemoryResult[]>;
 }
 
@@ -100,7 +106,7 @@ export interface IEtlRepository {
     table: string,
     records: EtlRecord[],
   ): Promise<{ success: number; failed: number }>;
-  
+
   saveJob(job: EtlJob): Promise<void>;
   getJob(jobId: string): Promise<Option<EtlJob>>;
   updateJobStatus(jobId: string, status: EtlJob['status'], error?: string): Promise<void>;
@@ -139,14 +145,14 @@ export interface PaginatedResult<T> {
 export interface SearchQuery {
   query: string;
   fields?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   options?: QueryOptions;
 }
 
 export interface SearchResult<T> {
   items: T[];
   total: number;
-  facets?: Record<string, any>;
+  facets?: Record<string, unknown>;
   suggestions?: string[];
 }
 
@@ -181,7 +187,7 @@ export interface ChatSession extends BaseEntity {
   agencyId: string;
   title?: string;
   status: 'active' | 'closed' | 'archived';
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   lastActivity: Date;
 }
 
@@ -190,7 +196,7 @@ export interface ChatMessage extends BaseEntity {
   role: 'user' | 'assistant' | 'system';
   content: string;
   tokens?: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface Document extends BaseEntity {
@@ -199,7 +205,7 @@ export interface Document extends BaseEntity {
   category: string;
   tags: string[];
   embeddings?: number[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**

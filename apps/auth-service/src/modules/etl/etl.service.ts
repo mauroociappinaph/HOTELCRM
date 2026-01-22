@@ -1,10 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import {
-  EtlPipelineConfig,
-  EtlJob,
-  EtlRecord,
-  QualityGateResult,
-} from '@hotel-crm/shared';
+import { EtlPipelineConfig, EtlJob, EtlRecord, QualityGateResult } from '@hotel-crm/shared';
 
 import { DataQualityGateService } from '../data-quality/data-quality-gate.service';
 import { QualityMetricsService } from '../data-quality/quality-metrics.service';
@@ -137,7 +132,7 @@ export class EtlService implements OnModuleInit {
     // Persist job
     await this.etlRepository.saveJob(job);
     this.activeJobs.set(jobId, job);
-    
+
     this.logger.log(`🚀 Started ETL job: ${jobId} for pipeline: ${pipelineId}`);
 
     try {
@@ -192,7 +187,8 @@ export class EtlService implements OnModuleInit {
         try {
           const gateId = this.getGateForPipeline(pipelineId);
           const data = record.data as Record<string, unknown>;
-          const recordAgencyId = (data.agency_id as string) || (data.agencyId as string) || 'default-system-agency';
+          const recordAgencyId =
+            (data.agency_id as string) || (data.agencyId as string) || 'default-system-agency';
 
           const qualityResult = await this.dataQualityGate.validateRecord(
             recordAgencyId,
@@ -248,7 +244,9 @@ export class EtlService implements OnModuleInit {
       }
 
       this.processingQueues.set(pipelineId, []);
-      this.logger.log(`✅ Successfully processed ${deduplicatedRecords.length} records for pipeline: ${pipelineId}`);
+      this.logger.log(
+        `✅ Successfully processed ${deduplicatedRecords.length} records for pipeline: ${pipelineId}`,
+      );
     } catch (error) {
       this.logger.error(`❌ Batch processing failed for pipeline ${pipelineId}:`, error);
       const job = Array.from(this.activeJobs.values()).find((j) => j.pipelineId === pipelineId);
@@ -260,7 +258,10 @@ export class EtlService implements OnModuleInit {
     }
   }
 
-  private async startStreamingProcessing(jobId: string, pipeline: EtlPipelineConfig): Promise<void> {
+  private async startStreamingProcessing(
+    jobId: string,
+    pipeline: EtlPipelineConfig,
+  ): Promise<void> {
     try {
       await this.streamingProcessor.startStreaming(pipeline.pipelineId, {
         batchSize: pipeline.batchSize,
@@ -312,7 +313,7 @@ export class EtlService implements OnModuleInit {
     job.retryCount++;
     job.status = 'retrying';
     await this.etlRepository.updateJobStatus(jobId, 'retrying');
-    
+
     const delay = pipeline.retryDelayMs * Math.pow(2, job.retryCount - 1);
     setTimeout(async () => {
       try {
@@ -354,7 +355,9 @@ export class EtlService implements OnModuleInit {
   private startBackgroundProcessing(): void {
     setInterval(async () => {
       for (const pipelineId of this.activePipelines.keys()) {
-        try { await this.processBatch(pipelineId); } catch (e) {}
+        try {
+          await this.processBatch(pipelineId);
+        } catch (e) {}
       }
     }, 30000);
   }

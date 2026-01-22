@@ -3,18 +3,10 @@
  * Using TypeScript Pro advanced patterns with conditional types and generics
  */
 
-import {
-  Builder,
-  BuilderState,
-  DeepPartial,
-  RequiredKeys,
-  OptionalKeys,
-} from './advanced-utils.types';
-
 /**
  * Generic Builder class with type safety
  */
-export class TypeSafeBuilder<T extends Record<string, any>, Required extends keyof T = never> {
+export class TypeSafeBuilder<T extends Record<string, unknown>, Required extends keyof T = never> {
   private data: Partial<T> = {};
   private requiredFields: Set<keyof T> = new Set();
 
@@ -112,7 +104,7 @@ export class TypeSafeBuilder<T extends Record<string, any>, Required extends key
 /**
  * Fluent API Builder with method chaining
  */
-export class FluentBuilder<T extends Record<string, any>, Required extends keyof T = never> {
+export class FluentBuilder<T extends Record<string, unknown>, Required extends keyof T = never> {
   private builder: TypeSafeBuilder<T, Required>;
 
   constructor(required: Required[] = []) {
@@ -122,7 +114,7 @@ export class FluentBuilder<T extends Record<string, any>, Required extends keyof
   /**
    * Create fluent methods for each property
    */
-  static create<T extends Record<string, any>, Required extends keyof T = never>(
+  static create<T extends Record<string, unknown>, Required extends keyof T = never>(
     required: Required[] = [],
   ): FluentBuilder<T, Required> & {
     [K in keyof T]: (value: T[K]) => FluentBuilder<T, Required>;
@@ -137,14 +129,16 @@ export class FluentBuilder<T extends Record<string, any>, Required extends keyof
         }
 
         // Create fluent setter method
-        return (value: any) => {
-          target.builder.set(prop as keyof T, value);
+        return (value: unknown) => {
+          target.builder.set(prop as keyof T, value as T[keyof T]);
           return proxy;
         };
       },
     });
 
-    return proxy as any;
+    return proxy as unknown as FluentBuilder<T, Required> & {
+      [K in keyof T]: (value: T[K]) => FluentBuilder<T, Required>;
+    };
   }
 
   /**
@@ -304,7 +298,7 @@ export class BookingBuilder extends TypeSafeBuilder<
 /**
  * Factory pattern with type safety
  */
-export class TypeSafeFactory<T extends Record<string, any>, TConfig = any> {
+export class TypeSafeFactory<T extends Record<string, unknown>, TConfig = unknown> {
   private creators: Map<string, (config: TConfig) => T> = new Map();
 
   /**
@@ -427,8 +421,8 @@ export function createRepositoryBuilder<T extends { id: string }>(): RepositoryB
 }
 
 export function createTypeSafeFactory<
-  T extends Record<string, any>,
-  TConfig = any,
+  T extends Record<string, unknown>,
+  TConfig = unknown,
 >(): TypeSafeFactory<T, TConfig> {
   return new TypeSafeFactory<T, TConfig>();
 }

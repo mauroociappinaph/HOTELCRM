@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+
 import { DataSourceMetadata, EtlRecord, IngestionFilters } from './interfaces/etl.interface';
 
 export interface DataSource {
@@ -75,7 +76,10 @@ export class DataIngestionService {
   /**
    * Ingest data from API
    */
-  private async ingestFromApi(source: DataSource, filters?: IngestionFilters): Promise<EtlRecord[]> {
+  private async ingestFromApi(
+    source: DataSource,
+    filters?: IngestionFilters,
+  ): Promise<EtlRecord[]> {
     if (!source.apiEndpoint) {
       throw new Error('API endpoint is required for API ingestion');
     }
@@ -93,12 +97,16 @@ export class DataIngestionService {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
-      const rawData = (await response.json()) as Record<string, unknown> | Array<Record<string, unknown>>;
+      const rawData = (await response.json()) as
+        | Record<string, unknown>
+        | Array<Record<string, unknown>>;
 
       // Handle different response formats
-      const records = Array.isArray(rawData) 
-        ? rawData 
-        : ((rawData as Record<string, unknown>).data as Array<Record<string, unknown>>) || [rawData];
+      const records = Array.isArray(rawData)
+        ? rawData
+        : ((rawData as Record<string, unknown>).data as Array<Record<string, unknown>>) || [
+            rawData,
+          ];
 
       this.logger.log(`🌐 Ingested ${records.length} records from API: ${source.apiEndpoint}`);
 

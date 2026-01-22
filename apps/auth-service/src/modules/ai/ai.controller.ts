@@ -15,7 +15,10 @@ export class AiController {
   ) {}
 
   @Post('chat/session')
-  async createSession(@Request() req: AuthenticatedRequest, @Body() body: { sessionName?: string }) {
+  async createSession(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { sessionName?: string },
+  ) {
     const userId = req.user.id;
     // For now, get agency from user profile - in production this should be cached
     const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
@@ -41,7 +44,10 @@ export class AiController {
   }
 
   @Get('chat/:sessionId/history')
-  async getSessionHistory(@Param('sessionId') sessionId: string, @Request() req: AuthenticatedRequest) {
+  async getSessionHistory(
+    @Param('sessionId') sessionId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
     const userId = req.user.id;
     return this.chatService.getSessionHistory(sessionId, userId);
   }
@@ -60,7 +66,10 @@ export class AiController {
   }
 
   @Post('embeddings/search')
-  async searchDocuments(@Request() req: AuthenticatedRequest, @Body() body: { query: string; limit?: number }) {
+  async searchDocuments(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { query: string; limit?: number },
+  ) {
     const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     return this.embeddingsService.searchSimilarDocuments(body.query, agencyId, body.limit);
   }

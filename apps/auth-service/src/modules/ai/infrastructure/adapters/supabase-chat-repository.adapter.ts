@@ -7,6 +7,7 @@ import {
   AiUsageLog,
   AiRecommendation,
 } from '@hotel-crm/shared';
+
 import { ChatRepositoryPort } from '../../domain/ports/chat-repository.port';
 import { SupabaseService } from '../../../../infrastructure/supabase/supabase.service';
 
@@ -18,11 +19,7 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
 
   async findById(id: string): Promise<Option<ChatSession>> {
     const client = this.supabaseService.getClient();
-    const { data, error } = await client
-      .from('ai_chat_sessions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await client.from('ai_chat_sessions').select('*').eq('id', id).single();
 
     if (error) {
       if (error.code === 'PGRST116') return { some: false, value: undefined };
@@ -45,7 +42,9 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
     return (data || []).map(this.mapSessionFromDb);
   }
 
-  async create(session: Omit<ChatSession, 'id' | 'createdAt' | 'updatedAt' | 'lastActivity'>): Promise<ChatSession> {
+  async create(
+    session: Omit<ChatSession, 'id' | 'createdAt' | 'updatedAt' | 'lastActivity'>,
+  ): Promise<ChatSession> {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
       .from('ai_chat_sessions')
@@ -88,7 +87,8 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
   }
 
   async exists(id: string): Promise<boolean> {
-    const { count } = await this.supabaseService.getClient()
+    const { count } = await this.supabaseService
+      .getClient()
       .from('ai_chat_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('id', id);
@@ -96,7 +96,8 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
   }
 
   async count(filter?: Partial<ChatSession>): Promise<number> {
-    const { count } = await this.supabaseService.getClient()
+    const { count } = await this.supabaseService
+      .getClient()
       .from('ai_chat_sessions')
       .select('*', { count: 'exact', head: true });
     return count || 0;
@@ -104,7 +105,9 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
 
   async findOne(filter: Partial<ChatSession>): Promise<Option<ChatSession>> {
     const sessions = await this.findAll(filter);
-    return sessions.length > 0 ? { some: true, value: sessions[0] } : { some: false, value: undefined };
+    return sessions.length > 0
+      ? { some: true, value: sessions[0] }
+      : { some: false, value: undefined };
   }
 
   async findMany(filter: Partial<ChatSession>, options?: any): Promise<ChatSession[]> {
@@ -138,22 +141,26 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
     return { some: true, value: this.mapSessionFromDb(data) };
   }
 
-  async saveMessage(sessionId: string, message: Omit<ChatMessage, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async saveMessage(
+    sessionId: string,
+    message: Omit<ChatMessage, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<void> {
     const client = this.supabaseService.getClient();
-    const { error } = await client
-      .from('ai_chat_messages')
-      .insert({
-        session_id: sessionId,
-        role: message.role,
-        content: message.content,
-        tokens_used: message.tokens,
-        metadata: message.metadata,
-      });
+    const { error } = await client.from('ai_chat_messages').insert({
+      session_id: sessionId,
+      role: message.role,
+      content: message.content,
+      tokens_used: message.tokens,
+      metadata: message.metadata,
+    });
 
     if (error) throw error;
   }
 
-  async getConversationHistory(sessionId: string, options?: ConversationOptions): Promise<ChatMessage[]> {
+  async getConversationHistory(
+    sessionId: string,
+    options?: ConversationOptions,
+  ): Promise<ChatMessage[]> {
     const client = this.supabaseService.getClient();
     let query = client
       .from('ai_chat_messages')
@@ -171,7 +178,7 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
 
   async updateSessionStats(sessionId: string, tokens: number, cost: number): Promise<void> {
     const client = this.supabaseService.getClient();
-    
+
     const { data: current } = await client
       .from('ai_chat_sessions')
       .select('total_tokens, total_cost')
@@ -192,35 +199,33 @@ export class SupabaseChatRepositoryAdapter implements ChatRepositoryPort {
 
   async logUsage(log: Omit<AiUsageLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
     const client = this.supabaseService.getClient();
-    const { error } = await client
-      .from('ai_usage_logs')
-      .insert({
-        agency_id: log.agencyId,
-        user_id: log.userId,
-        service_type: log.serviceType,
-        model_used: log.modelUsed,
-        tokens_used: log.tokensUsed,
-        cost_usd: log.costUsd,
-        request_data: log.requestData,
-        response_data: log.responseData,
-      });
+    const { error } = await client.from('ai_usage_logs').insert({
+      agency_id: log.agencyId,
+      user_id: log.userId,
+      service_type: log.serviceType,
+      model_used: log.modelUsed,
+      tokens_used: log.tokensUsed,
+      cost_usd: log.costUsd,
+      request_data: log.requestData,
+      response_data: log.responseData,
+    });
 
     if (error) throw error;
   }
 
-  async saveRecommendation(rec: Omit<AiRecommendation, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async saveRecommendation(
+    rec: Omit<AiRecommendation, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<void> {
     const client = this.supabaseService.getClient();
-    const { error } = await client
-      .from('ai_recommendations')
-      .insert({
-        agency_id: rec.agencyId,
-        user_id: rec.userId,
-        recommendation_type: rec.recommendationType,
-        title: rec.title,
-        description: rec.description,
-        confidence_score: rec.confidenceScore,
-        metadata: rec.metadata,
-      });
+    const { error } = await client.from('ai_recommendations').insert({
+      agency_id: rec.agencyId,
+      user_id: rec.userId,
+      recommendation_type: rec.recommendationType,
+      title: rec.title,
+      description: rec.description,
+      confidence_score: rec.confidenceScore,
+      metadata: rec.metadata,
+    });
 
     if (error) throw error;
   }

@@ -6,10 +6,10 @@ export class PiiService {
 
   // Regex patterns for common PII
   private readonly patterns = {
-    email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-    creditCard: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-    phone: /\b(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\b/g,
-    ssn: /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g,
+    email: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+    creditCard: /(?:\d{4}[-\s]?){3}\d{4}/g,
+    phone: /(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})/g,
+    ssn: /\d{3}[-]?\d{2}[-]?\d{4}/g,
     // Add more as needed
   };
 
@@ -28,16 +28,15 @@ export class PiiService {
       scrubbed = scrubbed.replace(this.patterns.creditCard, '[CARD_REDACTED]');
 
       // Replace Phone (careful with false positives, simple regex used)
-      // scrubbed = scrubbed.replace(this.patterns.phone, '[PHONE_REDACTED]'); 
+      // scrubbed = scrubbed.replace(this.patterns.phone, '[PHONE_REDACTED]');
       // Commented out phone for now to avoid scrubbing standard numbers/dates indiscriminately without better context
 
       // Replace SSN
       scrubbed = scrubbed.replace(this.patterns.ssn, '[SSN_REDACTED]');
-
     } catch (error) {
       this.logger.error('Error scrubbing PII', error);
-      // Fail safe: return original or empty? Return original but log error is safer for availability, 
-      // but returning redacted error message might be safer for security. 
+      // Fail safe: return original or empty? Return original but log error is safer for availability,
+      // but returning redacted error message might be safer for security.
       // For now, return partially scrubbed text.
     }
 

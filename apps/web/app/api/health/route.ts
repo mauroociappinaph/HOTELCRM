@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const SERVICE_NAME = 'HOTELCRM Web App';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const detailed = searchParams.get('detailed') === 'true';
@@ -11,7 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        service: 'HOTELCRM Web App',
+        service: SERVICE_NAME,
         version: '1.0.0',
         uptime: process.uptime(),
         environment: {
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'HOTELCRM Web App',
+      service: SERVICE_NAME,
       version: '1.0.0',
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
@@ -47,10 +49,10 @@ export async function GET(request: Request) {
       {
         status: 'error',
         timestamp: new Date().toISOString(),
-        service: 'HOTELCRM Web App',
+        service: SERVICE_NAME,
         error: 'Health check failed',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

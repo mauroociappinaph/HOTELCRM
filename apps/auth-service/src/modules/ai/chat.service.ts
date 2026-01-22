@@ -79,8 +79,14 @@ export class ChatService {
       });
 
       // 🧠 PHASE 1: Context & Memories
-      const conversationHistory = await this.chatRepository.getConversationHistory(sessionId, { limit: 10 });
-      const rawContextResults = await this.embeddingsService.searchSimilarDocuments(safeMessage, agencyId, 20);
+      const conversationHistory = await this.chatRepository.getConversationHistory(sessionId, {
+        limit: 10,
+      });
+      const rawContextResults = await this.embeddingsService.searchSimilarDocuments(
+        safeMessage,
+        agencyId,
+        20,
+      );
 
       const contextChunks: ContextChunk[] = rawContextResults.map((result) => ({
         id: result.document_id,
@@ -96,10 +102,15 @@ export class ChatService {
       }));
 
       const episodicMemories = await this.memoryManager.queryMemories({
-        type: 'episodic', query: safeMessage, userId, agencyId, sessionId, limit: 5,
+        type: 'episodic',
+        query: safeMessage,
+        userId,
+        agencyId,
+        sessionId,
+        limit: 5,
       });
 
-      const memoryChunks: ContextChunk[] = episodicMemories.map(mem => {
+      const memoryChunks: ContextChunk[] = episodicMemories.map((mem) => {
         const content = mem.content as any;
         return {
           id: `episodic-${content.id}`,
@@ -128,53 +139,79 @@ export class ChatService {
       };
 
       const optimizedContext: OptimizedContext = await this.contextAssembler.assembleContext(
-        allChunks, queryContext, { maxTokens: 6000, targetTokens: 4000, minTokens: 1000 },
+        allChunks,
+        queryContext,
+        { maxTokens: 6000, targetTokens: 4000, minTokens: 1000 },
       );
 
-      const finalContext = await this.contextOptimizer.optimizeContext(optimizedContext.chunks, 3500);
+      const finalContext = await this.contextOptimizer.optimizeContext(
+        optimizedContext.chunks,
+        3500,
+      );
       const systemPrompt = this.buildSystemPrompt(finalContext, queryContext);
 
       const response = await this.openRouter.chat.send({
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: safeMessage }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: safeMessage },
+        ],
         model: model,
         stream: false,
       });
 
       const aiResponseRaw = response.choices[0]?.message?.content || 'Lo siento...';
-      const aiResponse = typeof aiResponseRaw === 'string' ? aiResponseRaw : JSON.stringify(aiResponseRaw);
-      
+      const aiResponse =
+        typeof aiResponseRaw === 'string' ? aiResponseRaw : JSON.stringify(aiResponseRaw);
+
       const tokensUsed = response.usage?.totalTokens || 0;
       const estimatedCost = tokensUsed * 0.000001;
 
       // 🧠 PHASE 11: Persist results through repository
       await this.memoryManager.storeEpisodicMemory({
-        userId, agencyId, sessionId, interactionType: 'conversation',
+        userId,
+        agencyId,
+        sessionId,
+        interactionType: 'conversation',
         content: `User: ${safeMessage}\nAssistant: ${aiResponse}`,
-        context: { model, tokensUsed }, outcome: 'success',
+        context: { model, tokensUsed },
+        outcome: 'success',
         importance: this.calculateInteractionImportance(safeMessage, aiResponse),
       });
 
       const sources = finalContext.chunks.slice(0, 5).map((chunk: ContextChunk) => ({
-        document_id: chunk.id, content: chunk.content, similarity: chunk.relevanceScore,
-        title: chunk.metadata?.document_title || chunk.source, category: chunk.source,
+        document_id: chunk.id,
+        content: chunk.content,
+        similarity: chunk.relevanceScore,
+        title: chunk.metadata?.document_title || chunk.source,
+        category: chunk.source,
       }));
 
       await this.chatRepository.saveMessage(sessionId, {
-        sessionId, role: 'assistant', content: aiResponse,
-        tokens: tokensUsed, metadata: { sources, cost: estimatedCost },
+        sessionId,
+        role: 'assistant',
+        content: aiResponse,
+        tokens: tokensUsed,
+        metadata: { sources, cost: estimatedCost },
       });
 
       await this.chatRepository.updateSessionStats(sessionId, tokensUsed, estimatedCost);
 
       await this.chatRepository.logUsage({
-        agencyId, userId, serviceType: 'chat_advanced', modelUsed: model,
-        tokensUsed, costUsd: estimatedCost,
+        agencyId,
+        userId,
+        serviceType: 'chat_advanced',
+        modelUsed: model,
+        tokensUsed,
+        costUsd: estimatedCost,
         requestData: { message: safeMessage, model },
         responseData: { response: aiResponse.substring(0, 500) },
       });
 
       return {
-        response: aiResponse, sources, tokens_used: tokensUsed, cost: estimatedCost,
+        response: aiResponse,
+        sources,
+        tokens_used: tokensUsed,
+        cost: estimatedCost,
         context_metadata: {
           total_chunks: finalContext.chunks.length,
           compression_ratio: finalContext.compressionRatio,
@@ -190,19 +227,24 @@ export class ChatService {
 
   async getSessionHistory(sessionId: string, userId: string) {
     const history = await this.chatRepository.getConversationHistory(sessionId);
-    return history.map(msg => ({
-      id: msg.id, role: msg.role, content: msg.content,
+    return history.map((msg) => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
       created_at: msg.createdAt.toISOString(),
-      tokens_used: msg.tokens, metadata: msg.metadata
+      tokens_used: msg.tokens,
+      metadata: msg.metadata,
     }));
   }
 
   async getUserSessions(userId: string, agencyId: string) {
     const sessions = await this.chatRepository.findByUserId(userId);
-    return sessions.map(s => ({
-      id: s.id, session_name: s.title, created_at: s.createdAt.toISOString(),
+    return sessions.map((s) => ({
+      id: s.id,
+      session_name: s.title,
+      created_at: s.createdAt.toISOString(),
       total_tokens: (s.metadata as any).total_tokens || 0,
-      total_cost: (s.metadata as any).total_cost || 0
+      total_cost: (s.metadata as any).total_cost || 0,
     }));
   }
 
@@ -239,7 +281,10 @@ export class ChatService {
 
   private buildSystemPrompt(context: OptimizedContext, queryContext: QueryContext): string {
     const contextText = context.chunks
-      .map((chunk: ContextChunk) => `[${chunk.metadata?.document_title || chunk.source}] ${chunk.content}`)
+      .map(
+        (chunk: ContextChunk) =>
+          `[${chunk.metadata?.document_title || chunk.source}] ${chunk.content}`,
+      )
       .join('\n\n');
     return `You are an advanced AI assistant for HOTELCRM...\n\nCONTEXT:\n${contextText}`;
   }

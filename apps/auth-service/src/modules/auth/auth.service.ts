@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+
 import { AuthProviderPort } from './domain/ports/auth-provider.port';
 import { UserRepositoryPort } from './domain/ports/user-repository.port';
 
@@ -21,7 +22,7 @@ export class AuthService {
   async testSupabaseConnection() {
     try {
       const user = await this.authProvider.getCurrentUser().catch(() => null);
-      
+
       return {
         connected: true,
         message: 'Auth provider connection active',

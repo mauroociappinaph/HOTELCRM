@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EtlRecord } from '@hotel-crm/shared';
+
 import { EtlRepositoryPort } from './domain/ports/etl-repository.port';
 
 @Injectable()

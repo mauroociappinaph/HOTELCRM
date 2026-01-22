@@ -7,24 +7,11 @@ import { Injectable } from '@nestjs/common';
 import {
   IRepository,
   IQueryRepository,
-  ITransactionalRepository,
-  IChatRepository,
-  IBookingRepository,
-  IUserRepository,
-  IDocumentRepository,
   QueryOptions,
   PaginationOptions,
   PaginatedResult,
   SearchQuery,
   SearchResult,
-  ConversationOptions,
-  Option,
-  ChatSession,
-  ChatMessage,
-  Booking,
-  User,
-  Document,
-  ITransaction,
 } from '@hotel-crm/shared';
 
 import { SupabaseService } from '../supabase/supabase.service';
@@ -97,7 +84,10 @@ export abstract class SupabaseRepository<T extends { id: string }> implements IR
 
   async findAll(filter?: Partial<T>): Promise<T[]> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select(this.getSelectString());
+      let query = this.supabaseService
+        .getClient()
+        .from(this.tableName)
+        .select(this.getSelectString());
 
       if (filter) {
         Object.entries(filter).forEach(([key, value]) => {
@@ -249,7 +239,10 @@ export abstract class SupabaseQueryRepository<T extends { id: string }>
 {
   async findOne(filter: Partial<T>): Promise<Option<T>> {
     try {
-      let query = this.supabaseService.getClient().from(this.tableName).select(this.getSelectString());
+      let query = this.supabaseService
+        .getClient()
+        .from(this.tableName)
+        .select(this.getSelectString());
 
       Object.entries(filter).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -615,16 +608,7 @@ export class SupabaseDocumentRepository
   }
 
   protected getSelectedFields(): (keyof Document)[] {
-    return [
-      'id',
-      'title',
-      'content',
-      'category',
-      'tags',
-      'metadata',
-      'createdAt',
-      'updatedAt',
-    ];
+    return ['id', 'title', 'content', 'category', 'tags', 'metadata', 'createdAt', 'updatedAt'];
   }
 
   async findByCategory(category: string): Promise<Document[]> {

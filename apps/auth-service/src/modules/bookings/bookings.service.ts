@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Booking, BookingStatus } from '@hotel-crm/shared';
+
 import { BookingRepositoryPort } from './domain/ports/booking-repository.port';
 
 @Injectable()

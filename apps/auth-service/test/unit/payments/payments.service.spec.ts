@@ -1,10 +1,12 @@
 /// <reference types="jest" />
 
+import { beforeEach, describe, afterEach } from 'node:test';
+
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { PaymentsService } from '../../../src/modules/payments/payments.service';
 import { StripeService } from '../../../src/modules/payments/stripe.service';
 import { SupabaseService } from '../../../src/infrastructure/supabase/supabase.service';
-import { beforeEach, describe, afterEach } from 'node:test';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -99,9 +101,7 @@ describe('PaymentsService', () => {
       });
 
       // Act & Assert
-      await expect(
-        service.getUserSubscription(userId, agencyId)
-      ).rejects.toThrow();
+      await expect(service.getUserSubscription(userId, agencyId)).rejects.toThrow();
     });
   });
 });

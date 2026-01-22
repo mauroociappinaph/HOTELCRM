@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { MemoryManagerService } from '../../../src/modules/context-manager/memory-manager.service';
 import { SupabaseService } from '../../../src/infrastructure/supabase/supabase.service';
 
@@ -40,7 +41,7 @@ describe('MemoryManagerService (Multitenancy)', () => {
         facts: ['Top secret info'],
         relationships: [],
         confidence: 1,
-        source: 'test'
+        source: 'test',
       };
 
       // Mock existing check to return null (not found)
@@ -52,13 +53,13 @@ describe('MemoryManagerService (Multitenancy)', () => {
       // Assert: Check existence query uses agencyId
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('semantic_memories');
       expect(mockSupabaseClient.eq).toHaveBeenCalledWith('agency_id', 'agency-1');
-      
+
       // Assert: Insert uses agencyId
       expect(mockSupabaseClient.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           agency_id: 'agency-1',
-          concept: 'Secret Project'
-        })
+          concept: 'Secret Project',
+        }),
       );
     });
   });

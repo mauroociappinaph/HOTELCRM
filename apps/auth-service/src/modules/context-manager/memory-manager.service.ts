@@ -6,6 +6,7 @@ import {
   MemoryQuery,
   MemoryResult,
 } from '@hotel-crm/shared';
+
 import { MemoryRepositoryPort } from './domain/ports/memory-repository.port';
 
 @Injectable()

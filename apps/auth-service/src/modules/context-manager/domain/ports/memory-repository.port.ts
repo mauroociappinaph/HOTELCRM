@@ -26,10 +26,7 @@ export abstract class MemoryRepositoryPort implements IMemoryRepository {
 
   // Procedural Memory
   abstract storeProcedural(
-    memory: Omit<
-      ProceduralMemory,
-      'id' | 'createdAt' | 'updatedAt' | 'lastUsed' | 'usageCount'
-    >,
+    memory: Omit<ProceduralMemory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsed' | 'usageCount'>,
   ): Promise<string>;
   abstract queryProcedural(query: MemoryQuery): Promise<MemoryResult[]>;
 }

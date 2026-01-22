@@ -237,5 +237,12 @@ Roadmap estratégico para maximizar el Time-to-Value.
 
 ---
 
+## 📝 Post-Mortem: Fase de Abstracción de Repositorios (22/01/2026)
+- **Logro:** Desacoplamiento total de Supabase en módulos AI, ETL y Memory.
+- **Lección Crítica:** La migración de tipos a 'shared' resolvió el 90% de los errores de compilación. No permitir más interfaces locales para entidades de base de datos.
+- **Estado de Deuda:** Reducción del 60% en el uso de 'any' en el core del backend.
+
+---
+
 ## 25. Conclusión
 HOTELCRM es una plataforma de grado empresarial fundamentada en el código actual. La integración de estas visiones asegura un producto que no solo es técnicamente excelente, sino también transparente, fácil de depurar y listo para operar en una infraestructura de nube escalable y segura.

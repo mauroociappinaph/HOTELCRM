@@ -13,7 +13,7 @@ export interface AuthUser {
   metadata: {
     agencyId?: string;
     fullName?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

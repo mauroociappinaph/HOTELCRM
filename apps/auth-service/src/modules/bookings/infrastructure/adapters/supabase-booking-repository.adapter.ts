@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Booking, BookingStatus } from '@hotel-crm/shared';
+
 import { BookingRepositoryPort } from '../../domain/ports/booking-repository.port';
 import { SupabaseService } from '../../../../infrastructure/supabase/supabase.service';
 
@@ -9,11 +10,7 @@ export class SupabaseBookingRepositoryAdapter implements BookingRepositoryPort {
 
   async findById(id: string): Promise<Booking | null> {
     const client = this.supabaseService.getClient();
-    const { data, error } = await client
-      .from('bookings')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await client.from('bookings').select('*').eq('id', id).single();
 
     if (error && error.code !== 'PGRST116') throw error;
     return data ? this.mapToDomain(data) : null;

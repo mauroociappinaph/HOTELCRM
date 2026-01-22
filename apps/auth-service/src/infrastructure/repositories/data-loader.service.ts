@@ -33,7 +33,7 @@ export class DataLoaderService {
 
       // Map results back to the requested IDs
       const clientMap = new Map(data?.map((client: any) => [client.id, client]) || []);
-      return clientIds.map(id => clientMap.get(id) || null);
+      return clientIds.map((id) => clientMap.get(id) || null);
     });
 
     // 🔧 OPTIMIZATION: Batch load bookings by user ID
@@ -62,7 +62,7 @@ export class DataLoaderService {
       });
 
       // Return bookings array for each requested user
-      return userIds.map(userId => bookingsByUser.get(userId) || []);
+      return userIds.map((userId) => bookingsByUser.get(userId) || []);
     });
 
     // 🔧 OPTIMIZATION: Batch load itineraries by client ID
@@ -89,7 +89,7 @@ export class DataLoaderService {
         itinerariesByClient.get(clientId)!.push(itinerary);
       });
 
-      return clientIds.map(clientId => itinerariesByClient.get(clientId) || []);
+      return clientIds.map((clientId) => itinerariesByClient.get(clientId) || []);
     });
   }
 
@@ -119,7 +119,7 @@ export class DataLoaderService {
    */
   async loadUsersBookings(userIds: string[]): Promise<any[][]> {
     const results = await this.userBookingsLoader.loadMany(userIds);
-    return results.map(result => result instanceof Error ? [] : result);
+    return results.map((result) => (result instanceof Error ? [] : result));
   }
 
   /**
@@ -134,7 +134,7 @@ export class DataLoaderService {
    */
   async loadClientsItineraries(clientIds: string[]): Promise<any[][]> {
     const results = await this.clientItinerariesLoader.loadMany(clientIds);
-    return results.map(result => result instanceof Error ? [] : result);
+    return results.map((result) => (result instanceof Error ? [] : result));
   }
 
   /**

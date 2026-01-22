@@ -11,7 +11,7 @@ export const SECURITY_CONFIG = {
     PATTERN_DETECTION: 5 * 60 * 1000, // 5 minutes
     ALERT_CHECK: 60 * 1000, // 1 minute
     CLEANUP: 24 * 60 * 60 * 1000, // 24 hours
-  }
+  },
 };
 
 // Security event types
@@ -25,7 +25,7 @@ export type SecurityEvent = {
   request_method: string;
   attack_pattern?: string;
   confidence_score?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at?: string;
 };
 
@@ -38,7 +38,7 @@ export type SecurityAlert = {
   severity: 'low' | 'medium' | 'high' | 'critical';
   status: 'active' | 'acknowledged' | 'resolved';
   related_events: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at?: string;
   acknowledged_at?: string;
   resolved_at?: string;
@@ -48,7 +48,7 @@ export type SecurityAlert = {
 export class SecurityMonitor {
   private static instance: SecurityMonitor;
   private monitoringActive = false;
-  private intervals: NodeJS.Timeout[] = [];
+  private intervals: ReturnType<typeof setInterval>[] = [];
 
   static getInstance(): SecurityMonitor {
     if (!SecurityMonitor.instance) {
@@ -60,9 +60,7 @@ export class SecurityMonitor {
   // Log security event to database
   async logSecurityEvent(event: Omit<SecurityEvent, 'id' | 'created_at'>): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('security_events')
-        .insert([event]);
+      const { error } = await supabase.from('security_events').insert([event]);
 
       if (error) {
         console.error('[SECURITY MONITOR] Failed to log security event:', error);
@@ -97,8 +95,8 @@ export class SecurityMonitor {
           metadata: {
             pattern: pattern.pattern,
             count: pattern.count,
-            time_window: '1_hour'
-          }
+            time_window: '1_hour',
+          },
         });
       }
     } catch (error) {
@@ -109,9 +107,7 @@ export class SecurityMonitor {
   // Create security alert
   async createSecurityAlert(alert: Omit<SecurityAlert, 'id' | 'created_at'>): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('security_alerts')
-        .insert([alert]);
+      const { error } = await supabase.from('security_alerts').insert([alert]);
 
       if (error) {
         console.error('[SECURITY MONITOR] Failed to create security alert:', error);
@@ -151,8 +147,8 @@ export class SecurityMonitor {
           related_events: [],
           metadata: {
             trip_count: tripCount,
-            time_window: '1_hour'
-          }
+            time_window: '1_hour',
+          },
         });
       }
     } catch (error) {
@@ -196,8 +192,8 @@ export class SecurityMonitor {
             metadata: {
               source_ip: ip,
               hit_count: count,
-              time_window: '1_minute'
-            }
+              time_window: '1_minute',
+            },
           });
         }
       }
@@ -238,20 +234,26 @@ export class SecurityMonitor {
     this.monitoringActive = true;
 
     // Pattern detection every 5 minutes
-    this.intervals.push(setInterval(() => {
-      this.checkAttackPatterns();
-    }, SECURITY_CONFIG.MONITORING_INTERVALS.PATTERN_DETECTION));
+    this.intervals.push(
+      setInterval(() => {
+        this.checkAttackPatterns();
+      }, SECURITY_CONFIG.MONITORING_INTERVALS.PATTERN_DETECTION),
+    );
 
     // Alert checks every minute
-    this.intervals.push(setInterval(() => {
-      this.checkCircuitBreakerStatus();
-      this.checkRateLimitPatterns();
-    }, SECURITY_CONFIG.MONITORING_INTERVALS.ALERT_CHECK));
+    this.intervals.push(
+      setInterval(() => {
+        this.checkCircuitBreakerStatus();
+        this.checkRateLimitPatterns();
+      }, SECURITY_CONFIG.MONITORING_INTERVALS.ALERT_CHECK),
+    );
 
     // Cleanup every 24 hours
-    this.intervals.push(setInterval(() => {
-      this.cleanupOldEvents();
-    }, SECURITY_CONFIG.MONITORING_INTERVALS.CLEANUP));
+    this.intervals.push(
+      setInterval(() => {
+        this.cleanupOldEvents();
+      }, SECURITY_CONFIG.MONITORING_INTERVALS.CLEANUP),
+    );
   }
 
   // Stop monitoring
@@ -263,7 +265,7 @@ export class SecurityMonitor {
     console.log('[SECURITY MONITOR] Stopping security monitoring...');
 
     this.monitoringActive = false;
-    this.intervals.forEach(interval => clearInterval(interval));
+    this.intervals.forEach((interval) => clearInterval(interval));
     this.intervals = [];
   }
 
@@ -279,20 +281,14 @@ export class SecurityMonitor {
       const timeRanges = {
         '1h': 60 * 60 * 1000,
         '24h': 24 * 60 * 60 * 1000,
-        '7d': 7 * 24 * 60 * 60 * 1000
+        '7d': 7 * 24 * 60 * 60 * 1000,
       };
 
       const since = new Date(Date.now() - timeRanges[timeRange]).toISOString();
 
       const [eventsResult, alertsResult] = await Promise.all([
-        supabase
-          .from('security_events')
-          .select('event_type')
-          .gte('created_at', since),
-        supabase
-          .from('security_alerts')
-          .select('status')
-          .eq('status', 'active')
+        supabase.from('security_events').select('event_type').gte('created_at', since),
+        supabase.from('security_alerts').select('status').eq('status', 'active'),
       ]);
 
       if (eventsResult.error || alertsResult.error) {
@@ -304,10 +300,10 @@ export class SecurityMonitor {
 
       return {
         totalEvents: events.length,
-        attackAttempts: events.filter(e => e.event_type === 'attack_attempt').length,
-        rateLimitHits: events.filter(e => e.event_type === 'rate_limit_hit').length,
-        circuitBreakerTrips: events.filter(e => e.event_type === 'circuit_breaker_open').length,
-        activeAlerts: alerts.length
+        attackAttempts: events.filter((e) => e.event_type === 'attack_attempt').length,
+        rateLimitHits: events.filter((e) => e.event_type === 'rate_limit_hit').length,
+        circuitBreakerTrips: events.filter((e) => e.event_type === 'circuit_breaker_open').length,
+        activeAlerts: alerts.length,
       };
     } catch (error) {
       console.error('[SECURITY MONITOR] Error getting security stats:', error);
@@ -316,7 +312,7 @@ export class SecurityMonitor {
         attackAttempts: 0,
         rateLimitHits: 0,
         circuitBreakerTrips: 0,
-        activeAlerts: 0
+        activeAlerts: 0,
       };
     }
   }

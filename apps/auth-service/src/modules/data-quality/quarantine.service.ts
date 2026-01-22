@@ -43,7 +43,7 @@ export class QuarantineService {
    * Store a rejected record in quarantine
    */
   async storeRejectedRecord<T, C>(
-    quarantinedRecord: Omit<QuarantinedRecord<T, C>, 'id' | 'quarantinedAt'>
+    quarantinedRecord: Omit<QuarantinedRecord<T, C>, 'id' | 'quarantinedAt'>,
   ): Promise<string> {
     try {
       const recordToStore = {
@@ -92,7 +92,7 @@ export class QuarantineService {
    * Get quarantined records with filtering
    */
   async getQuarantinedRecords<T = any, C = any>(
-    agencyId: string, 
+    agencyId: string,
     filters?: {
       gateId?: string;
       priority?: string;
@@ -100,11 +100,11 @@ export class QuarantineService {
       reviewed?: boolean;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<QuarantinedRecord<T, C>[]> {
     try {
       const client = this.supabaseService.getClient();
-      
+
       // 🛡️ SECURITY: Force agency_id filter
       let query = client
         .from(this.quarantineTable)
@@ -223,19 +223,32 @@ export class QuarantineService {
         stats.totalQuarantined++;
 
         switch (record.resolution) {
-          case 'approved': stats.approved++; break;
-          case 'rejected': stats.rejected++; break;
-          case 'fixed': stats.fixed++; break;
-          default: stats.pendingReview++;
+          case 'approved':
+            stats.approved++;
+            break;
+          case 'rejected':
+            stats.rejected++;
+            break;
+          case 'fixed':
+            stats.fixed++;
+            break;
+          default:
+            stats.pendingReview++;
         }
 
         stats.byGate[record.gate_id] = (stats.byGate[record.gate_id] || 0) + 1;
-        stats.byPriority[record.priority || 'medium'] = (stats.byPriority[record.priority || 'medium'] || 0) + 1;
-        stats.byReason[record.rejection_reason] = (stats.byReason[record.rejection_reason] || 0) + 1;
+        stats.byPriority[record.priority || 'medium'] =
+          (stats.byPriority[record.priority || 'medium'] || 0) + 1;
+        stats.byReason[record.rejection_reason] =
+          (stats.byReason[record.rejection_reason] || 0) + 1;
 
         if (record.reviewed_at && record.quarantined_at) {
-          const resolutionTime = new Date(record.reviewed_at).getTime() - new Date(record.quarantined_at).getTime();
-          stats.averageResolutionTime = stats.averageResolutionTime === 0 ? resolutionTime : (stats.averageResolutionTime + resolutionTime) / 2;
+          const resolutionTime =
+            new Date(record.reviewed_at).getTime() - new Date(record.quarantined_at).getTime();
+          stats.averageResolutionTime =
+            stats.averageResolutionTime === 0
+              ? resolutionTime
+              : (stats.averageResolutionTime + resolutionTime) / 2;
         }
       }
 
@@ -281,8 +294,16 @@ export class QuarantineService {
   }
 
   private calculatePriority(record: any): 'low' | 'medium' | 'high' | 'critical' {
-    if (record.gateId === 'payments-gate' && record.rejectionReason.includes('PAYMENT_AMOUNT_NEGATIVE')) return 'critical';
-    if (record.gateId === 'bookings-gate' && record.rejectionReason.includes('BOOKING_DATES_INVALID')) return 'high';
+    if (
+      record.gateId === 'payments-gate' &&
+      record.rejectionReason.includes('PAYMENT_AMOUNT_NEGATIVE')
+    )
+      return 'critical';
+    if (
+      record.gateId === 'bookings-gate' &&
+      record.rejectionReason.includes('BOOKING_DATES_INVALID')
+    )
+      return 'high';
     if (record.rejectionReason.includes('EVENT_TIME_FUTURE')) return 'high';
     return record.rejectionReason.includes('Schema validation failed') ? 'medium' : 'low';
   }

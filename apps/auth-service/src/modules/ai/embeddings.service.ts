@@ -56,7 +56,7 @@ export class EmbeddingsService {
     try {
       // If the API supports batch processing, use it directly
       // For now, we'll use concurrent processing with Promise.allSettled
-      const promises = texts.map(text => this.generateEmbeddings(text));
+      const promises = texts.map((text) => this.generateEmbeddings(text));
       const results = await Promise.allSettled(promises);
 
       const embeddings: number[][] = [];
@@ -153,21 +153,25 @@ export class EmbeddingsService {
       // Process chunks in batches to avoid overwhelming the API
       for (let i = 0; i < chunks.length; i += this.BATCH_SIZE) {
         const batch = chunks.slice(i, i + this.BATCH_SIZE);
-        this.logger.debug(`Processing batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(chunks.length / this.BATCH_SIZE)} (${batch.length} chunks)`);
+        this.logger.debug(
+          `Processing batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(chunks.length / this.BATCH_SIZE)} (${batch.length} chunks)`,
+        );
 
         const batchEmbeddings = await this.generateEmbeddingsBatch(batch);
         embeddings.push(...batchEmbeddings);
 
         // Small delay between batches to be respectful to the API
         if (i + this.BATCH_SIZE < chunks.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
       // Store embeddings in database
       await this.storeDocumentEmbeddings(documentId, agencyId, chunks, embeddings);
 
-      this.logger.log(`Successfully processed document ${documentId} with ${chunks.length} chunks in ${Math.ceil(chunks.length / this.BATCH_SIZE)} batches`);
+      this.logger.log(
+        `Successfully processed document ${documentId} with ${chunks.length} chunks in ${Math.ceil(chunks.length / this.BATCH_SIZE)} batches`,
+      );
     } catch (error) {
       this.logger.error(`Error processing document ${documentId}:`, error);
       throw error;

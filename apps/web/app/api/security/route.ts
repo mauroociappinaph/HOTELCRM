@@ -10,21 +10,19 @@ export async function GET(request: Request) {
     // TODO: Re-enable security monitor integration after fixing build issues
 
     if (action === 'stats') {
-      const timeRange = searchParams.get('range') || '24h';
-
       // Mock security stats for now
       const stats = {
         totalEvents: 0,
         attackAttempts: 0,
         rateLimitHits: 0,
         circuitBreakerTrips: 0,
-        activeAlerts: 0
+        activeAlerts: 0,
       };
 
       return NextResponse.json({
         success: true,
         data: stats,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -32,7 +30,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         message: 'Security monitoring started (mock)',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -40,7 +38,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         message: 'Security monitoring stopped (mock)',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -52,28 +50,27 @@ export async function GET(request: Request) {
         nextjs_vulnerabilities: {
           cve_2025_55184: 'patched',
           cve_2025_55183: 'patched',
-          version: '14.2.35'
+          version: '14.2.35',
         },
         security_features: [
           'rate_limiting',
           'circuit_breaker',
           'attack_detection',
           'security_headers',
-          'content_security_policy'
-        ]
+          'content_security_policy',
+        ],
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('[SECURITY API ERROR]', error);
     return NextResponse.json(
       {
         success: false,
         error: 'Security API error',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

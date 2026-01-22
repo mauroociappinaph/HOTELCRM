@@ -5,10 +5,10 @@ jest.mock('@openrouter/sdk', () => ({
   OpenRouter: jest.fn().mockImplementation(() => ({
     embeddings: {
       generate: jest.fn().mockResolvedValue({
-        data: [{ embedding: [] }]
+        data: [{ embedding: [] }],
       }),
-    }
-  }))
+    },
+  })),
 }));
 
 import { EmbeddingsService } from '../../../src/modules/ai/embeddings.service';
@@ -40,12 +40,12 @@ describe('EmbeddingsService (Security)', () => {
 
     service = module.get<EmbeddingsService>(EmbeddingsService);
     piiService = module.get<PiiService>(PiiService);
-    
+
     // Manual injection of mockOpenRouter
     mockOpenRouter = {
       embeddings: {
-        generate: jest.fn().mockResolvedValue({ data: [] })
-      }
+        generate: jest.fn().mockResolvedValue({ data: [] }),
+      },
     };
     (service as any).openRouter = mockOpenRouter;
   });
@@ -61,8 +61,8 @@ describe('EmbeddingsService (Security)', () => {
     // Assert
     expect(mockOpenRouter.embeddings.generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expectedSafeText
-      })
+        input: expectedSafeText,
+      }),
     );
   });
 });

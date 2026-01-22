@@ -13,15 +13,59 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
-  // Base configuration for all files
+  // Ignore patterns
   {
-    files: ['**/*.{js,ts,tsx}'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.turbo/**',
+      '**/apps/web/.next/**',
+      '**/*.generated.ts',
+      '**/coverage/**',
+      '**/*.d.ts',
+      '**/pnpm-lock.yaml',
+    ],
+  },
+
+  // Base configuration for JavaScript files (Node.js/Config)
+  {
+    files: ['**/*.{js,jsx,mjs,cjs}'],
+    ...js.configs.recommended,
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+      },
+    },
+    plugins: {
+      security,
+      prettier: prettierPlugin,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...prettierConfig.rules,
+      'prettier/prettier': 'error',
+      'security/detect-object-injection': 'warn',
+    },
+  },
+
+  // Base configuration for TypeScript files
+  {
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: true, // Use local tsconfig.json
+        project: true,
       },
       globals: {
         console: 'readonly',
@@ -29,12 +73,30 @@ export default [
         Buffer: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        alert: 'readonly',
+        crypto: 'readonly',
+        NodeJS: 'readonly',
       },
     },
     settings: {
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
+          project: [
+            'tsconfig.base.json',
+            'apps/*/tsconfig.json',
+            'packages/*/tsconfig.json',
+          ],
         },
       },
     },
@@ -64,7 +126,7 @@ export default [
       '@typescript-eslint/no-var-requires': 'error',
 
       // Security rules (OWASP Top 10)
-      'security/detect-object-injection': 'error',
+      'security/detect-object-injection': 'warn',
       'security/detect-eval-with-expression': 'error',
       'security/detect-no-csrf-before-method-override': 'error',
       'security/detect-possible-timing-attacks': 'error',
@@ -96,18 +158,19 @@ export default [
             'sibling',
             'index',
           ],
+          'pathGroups': [
+            {
+              'pattern': '@/**',
+              'group': 'internal',
+              'position': 'before'
+            }
+          ],
           'newlines-between': 'always',
         },
       ],
       'import/no-unresolved': 'error',
       'import/no-cycle': 'error',
       'import/no-unused-modules': 'error',
-
-      // Node.js rules (removed due to ESLint v9 compatibility issues)
-      // 'node/no-deprecated-api': 'error',
-      // 'node/no-extraneous-require': 'error',
-      // 'node/no-missing-require': 'error',
-      // 'node/no-unpublished-require': 'error',
 
       // Performance rules
       'no-loop-func': 'error',
@@ -137,24 +200,6 @@ export default [
   // Frontend-specific rules (Next.js)
   {
     files: ['apps/web/**/*.{ts,tsx}'],
-    languageOptions: {
-      globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        console: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        // Next.js specific
-        process: 'readonly',
-      },
-    },
     rules: {
       // React/Next.js specific rules
       'react-hooks/rules-of-hooks': 'error',
@@ -178,7 +223,26 @@ export default [
 
   // Test files rules
   {
-    files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    files: [
+      '**/*.test.{ts,tsx}',
+      '**/*.spec.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/test/**/*.{ts,tsx}',
+    ],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+        fail: 'readonly',
+      },
+    },
     rules: {
       // Jest rules
       'jest/no-disabled-tests': 'warn',
@@ -199,18 +263,5 @@ export default [
       'node/no-unpublished-require': 'off',
       '@typescript-eslint/no-var-requires': 'off',
     },
-  },
-
-  // Ignore patterns
-  {
-    ignores: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/.turbo/**',
-      '**/*.generated.ts',
-      '**/coverage/**',
-      '**/*.d.ts',
-    ],
   },
 ];

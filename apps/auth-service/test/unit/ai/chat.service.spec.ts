@@ -6,10 +6,10 @@ jest.mock('@openrouter/sdk', () => ({
     chat: {
       send: jest.fn().mockResolvedValue({
         choices: [{ message: { content: 'AI Response' } }],
-        usage: { totalTokens: 10 }
+        usage: { totalTokens: 10 },
       }),
-    }
-  }))
+    },
+  })),
 }));
 
 import { ChatService } from '../../../src/modules/ai/chat.service';
@@ -35,7 +35,10 @@ describe('ChatService (Security Integration)', () => {
       select: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { id: 'session-1', total_tokens: 0, total_cost: 0 }, error: null }),
+      single: jest.fn().mockResolvedValue({
+        data: { id: 'session-1', total_tokens: 0, total_cost: 0 },
+        error: null,
+      }),
       order: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
     };
@@ -44,9 +47,9 @@ describe('ChatService (Security Integration)', () => {
       chat: {
         send: jest.fn().mockResolvedValue({
           choices: [{ message: { content: 'AI Response' } }],
-          usage: { totalTokens: 10 }
+          usage: { totalTokens: 10 },
         }),
-      }
+      },
     };
 
     mockEmbeddingsService = {
@@ -64,15 +67,34 @@ describe('ChatService (Security Integration)', () => {
         PiiService, // Real PiiService
         { provide: SupabaseService, useValue: { getClient: () => mockSupabaseClient } },
         { provide: EmbeddingsService, useValue: mockEmbeddingsService },
-        { provide: ContextAssemblerService, useValue: { assembleContext: jest.fn().mockResolvedValue({ chunks: [], compressionRatio: 1, metadata: { strategiesUsed: [] } }) } },
+        {
+          provide: ContextAssemblerService,
+          useValue: {
+            assembleContext: jest.fn().mockResolvedValue({
+              chunks: [],
+              compressionRatio: 1,
+              metadata: { strategiesUsed: [] },
+            }),
+          },
+        },
         { provide: MemoryManagerService, useValue: mockMemoryManager },
-        { provide: ContextOptimizerService, useValue: { optimizeContext: jest.fn().mockResolvedValue({ chunks: [], compressionRatio: 1, relevanceScore: 1, metadata: { strategiesUsed: [] } }) } },
+        {
+          provide: ContextOptimizerService,
+          useValue: {
+            optimizeContext: jest.fn().mockResolvedValue({
+              chunks: [],
+              compressionRatio: 1,
+              relevanceScore: 1,
+              metadata: { strategiesUsed: [] },
+            }),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<ChatService>(ChatService);
     piiService = module.get<PiiService>(PiiService);
-    
+
     // Manual injection of mockOpenRouter since it's instantiated in constructor
     (service as any).openRouter = mockOpenRouter;
   });
@@ -93,31 +115,31 @@ describe('ChatService (Security Integration)', () => {
     expect(mockSupabaseClient.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expectedScrubbed,
-        role: 'user'
-      })
+        role: 'user',
+      }),
     );
 
     // Assert 2: Embeddings Search
     expect(mockEmbeddingsService.searchSimilarDocuments).toHaveBeenCalledWith(
       expectedScrubbed,
       agencyId,
-      expect.any(Number)
+      expect.any(Number),
     );
 
     // Assert 3: LLM Call
     expect(mockOpenRouter.chat.send).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
-          expect.objectContaining({ role: 'user', content: expectedScrubbed })
-        ])
-      })
+          expect.objectContaining({ role: 'user', content: expectedScrubbed }),
+        ]),
+      }),
     );
 
     // Assert 4: Memory Storage
     expect(mockMemoryManager.storeEpisodicMemory).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: expect.stringContaining(expectedScrubbed)
-      })
+        content: expect.stringContaining(expectedScrubbed),
+      }),
     );
   });
 });

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EtlRecord, EtlJob, Option } from '@hotel-crm/shared';
+
 import { EtlRepositoryPort } from '../../domain/ports/etl-repository.port';
 import { SupabaseService } from '../../../../infrastructure/supabase/supabase.service';
 
@@ -68,11 +69,7 @@ export class SupabaseEtlRepositoryAdapter implements EtlRepositoryPort {
 
   async getJob(jobId: string): Promise<Option<EtlJob>> {
     const client = this.supabaseService.getClient();
-    const { data, error } = await client
-      .from('etl_jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
+    const { data, error } = await client.from('etl_jobs').select('*').eq('id', jobId).single();
 
     if (error) {
       if (error.code === 'PGRST116') return { some: false, value: undefined };
@@ -93,10 +90,7 @@ export class SupabaseEtlRepositoryAdapter implements EtlRepositoryPort {
       updateData.end_time = new Date().toISOString();
     }
 
-    const { error: dbError } = await client
-      .from('etl_jobs')
-      .update(updateData)
-      .eq('id', jobId);
+    const { error: dbError } = await client.from('etl_jobs').update(updateData).eq('id', jobId);
 
     if (dbError) throw dbError;
   }

@@ -75,8 +75,8 @@ export interface QualityGateResult {
 }
 
 export interface DataQualityCheck {
-  schemaValidation?: any;
-  businessRulesValidation?: any;
+  schemaValidation?: unknown;
+  businessRulesValidation?: unknown;
   overallResult: boolean;
   rejectedReason?: string;
   checkTime: number;

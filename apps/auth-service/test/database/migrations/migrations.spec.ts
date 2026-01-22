@@ -1,7 +1,8 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { Client } from 'pg';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { Client } from 'pg';
 
 describe('Database Migrations', () => {
   let container: StartedPostgreSqlContainer;
@@ -58,18 +59,21 @@ describe('Database Migrations', () => {
         'clients',
         'itineraries',
         'bookings',
-        'document_sections'
+        'document_sections',
       ];
 
       for (const tableName of tables) {
-        const result = await client.query(`
+        const result = await client.query(
+          `
           SELECT EXISTS (
             SELECT 1
             FROM information_schema.tables
             WHERE table_schema = 'public'
             AND table_name = $1
           );
-        `, [tableName]);
+        `,
+          [tableName],
+        );
 
         expect(result.rows[0].exists).toBe(true);
       }
@@ -97,19 +101,19 @@ describe('Database Migrations', () => {
           expect.objectContaining({
             column_name: 'id',
             data_type: 'uuid',
-            is_nullable: 'NO'
+            is_nullable: 'NO',
           }),
           expect.objectContaining({
             column_name: 'name',
             data_type: 'character varying',
-            is_nullable: 'NO'
+            is_nullable: 'NO',
           }),
           expect.objectContaining({
             column_name: 'tax_id',
             data_type: 'character varying',
-            is_nullable: 'NO'
-          })
-        ])
+            is_nullable: 'NO',
+          }),
+        ]),
       );
 
       // Check unique constraint on tax_id
@@ -121,7 +125,7 @@ describe('Database Migrations', () => {
         AND constraint_type = 'UNIQUE';
       `);
 
-      expect(taxIdConstraint.rows.some(row => row.constraint_name.includes('tax_id'))).toBe(true);
+      expect(taxIdConstraint.rows.some((row) => row.constraint_name.includes('tax_id'))).toBe(true);
     });
 
     it('should create foreign key relationships correctly', async () => {
@@ -155,9 +159,9 @@ describe('Database Migrations', () => {
             table_name: 'profiles',
             column_name: 'agency_id',
             foreign_table_name: 'agencies',
-            foreign_column_name: 'id'
-          })
-        ])
+            foreign_column_name: 'id',
+          }),
+        ]),
       );
 
       // Check clients -> agencies relationship
@@ -167,9 +171,9 @@ describe('Database Migrations', () => {
             table_name: 'clients',
             column_name: 'agency_id',
             foreign_table_name: 'agencies',
-            foreign_column_name: 'id'
-          })
-        ])
+            foreign_column_name: 'id',
+          }),
+        ]),
       );
     });
   });
@@ -178,12 +182,18 @@ describe('Database Migrations', () => {
     it('should create all payment-related tables', async () => {
       // Arrange
       // First run the base migration
-      const baseMigrationPath = join(process.cwd(), '../../supabase/migrations/001_create_tables.sql');
+      const baseMigrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/001_create_tables.sql',
+      );
       const baseMigrationSQL = readFileSync(baseMigrationPath, 'utf8');
       await client.query(baseMigrationSQL);
 
       // Then run the payments migration
-      const migrationPath = join(process.cwd(), '../../supabase/migrations/004_payments_stripe_integration.sql');
+      const migrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/004_payments_stripe_integration.sql',
+      );
       const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Act
@@ -198,18 +208,21 @@ describe('Database Migrations', () => {
         'stripe_webhook_events',
         'invoices',
         'usage_records',
-        'coupons'
+        'coupons',
       ];
 
       for (const tableName of paymentTables) {
-        const result = await client.query(`
+        const result = await client.query(
+          `
           SELECT EXISTS (
             SELECT 1
             FROM information_schema.tables
             WHERE table_schema = 'public'
             AND table_name = $1
           );
-        `, [tableName]);
+        `,
+          [tableName],
+        );
 
         expect(result.rows[0].exists).toBe(true);
       }
@@ -217,11 +230,17 @@ describe('Database Migrations', () => {
 
     it('should create subscription_plans with correct structure and data', async () => {
       // Arrange
-      const baseMigrationPath = join(process.cwd(), '../../supabase/migrations/001_create_tables.sql');
+      const baseMigrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/001_create_tables.sql',
+      );
       const baseMigrationSQL = readFileSync(baseMigrationPath, 'utf8');
       await client.query(baseMigrationSQL);
 
-      const migrationPath = join(process.cwd(), '../../supabase/migrations/004_payments_stripe_integration.sql');
+      const migrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/004_payments_stripe_integration.sql',
+      );
       const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Act
@@ -235,29 +254,35 @@ describe('Database Migrations', () => {
         name: 'Hotel Basic',
         price_cents: 2999,
         currency: 'usd',
-        interval: 'month'
+        interval: 'month',
       });
       expect(plans.rows[1]).toMatchObject({
         name: 'Hotel Pro',
         price_cents: 5999,
         currency: 'usd',
-        interval: 'month'
+        interval: 'month',
       });
       expect(plans.rows[2]).toMatchObject({
         name: 'Hotel Enterprise',
         price_cents: 14999,
         currency: 'usd',
-        interval: 'month'
+        interval: 'month',
       });
     });
 
     it('should create proper indexes for performance', async () => {
       // Arrange
-      const baseMigrationPath = join(process.cwd(), '../../supabase/migrations/001_create_tables.sql');
+      const baseMigrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/001_create_tables.sql',
+      );
       const baseMigrationSQL = readFileSync(baseMigrationPath, 'utf8');
       await client.query(baseMigrationSQL);
 
-      const migrationPath = join(process.cwd(), '../../supabase/migrations/004_payments_stripe_integration.sql');
+      const migrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/004_payments_stripe_integration.sql',
+      );
       const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Act
@@ -271,7 +296,7 @@ describe('Database Migrations', () => {
         AND tablename IN ('subscription_plans', 'stripe_customers', 'subscriptions', 'payments', 'invoices');
       `);
 
-      const indexNames = indexes.rows.map(row => row.indexname);
+      const indexNames = indexes.rows.map((row) => row.indexname);
 
       // Check for key performance indexes
       expect(indexNames).toEqual(
@@ -280,18 +305,24 @@ describe('Database Migrations', () => {
           expect.stringMatching(/idx_stripe_customers_user_id/),
           expect.stringMatching(/idx_subscriptions_user_id/),
           expect.stringMatching(/idx_payments_user_id/),
-          expect.stringMatching(/idx_invoices_user_id/)
-        ])
+          expect.stringMatching(/idx_invoices_user_id/),
+        ]),
       );
     });
 
     it('should enable Row Level Security on all payment tables', async () => {
       // Arrange
-      const baseMigrationPath = join(process.cwd(), '../../supabase/migrations/001_create_tables.sql');
+      const baseMigrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/001_create_tables.sql',
+      );
       const baseMigrationSQL = readFileSync(baseMigrationPath, 'utf8');
       await client.query(baseMigrationSQL);
 
-      const migrationPath = join(process.cwd(), '../../supabase/migrations/004_payments_stripe_integration.sql');
+      const migrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/004_payments_stripe_integration.sql',
+      );
       const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Act
@@ -306,7 +337,7 @@ describe('Database Migrations', () => {
         AND tablename IN ('subscription_plans', 'stripe_customers', 'subscriptions', 'payments', 'invoices', 'coupons');
       `);
 
-      const rlsEnabledTables = rlsTables.rows.map(row => row.tablename);
+      const rlsEnabledTables = rlsTables.rows.map((row) => row.tablename);
 
       expect(rlsEnabledTables).toEqual(
         expect.arrayContaining([
@@ -315,18 +346,24 @@ describe('Database Migrations', () => {
           'subscriptions',
           'payments',
           'invoices',
-          'coupons'
-        ])
+          'coupons',
+        ]),
       );
     });
 
     it('should create coupon with correct data', async () => {
       // Arrange
-      const baseMigrationPath = join(process.cwd(), '../../supabase/migrations/001_create_tables.sql');
+      const baseMigrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/001_create_tables.sql',
+      );
       const baseMigrationSQL = readFileSync(baseMigrationPath, 'utf8');
       await client.query(baseMigrationSQL);
 
-      const migrationPath = join(process.cwd(), '../../supabase/migrations/004_payments_stripe_integration.sql');
+      const migrationPath = join(
+        process.cwd(),
+        '../../supabase/migrations/004_payments_stripe_integration.sql',
+      );
       const migrationSQL = readFileSync(migrationPath, 'utf8');
 
       // Act
@@ -343,7 +380,7 @@ describe('Database Migrations', () => {
         discount_value: 20,
         max_redemptions: 1000,
         redemptions_count: 0,
-        is_active: true
+        is_active: true,
       });
     });
   });
@@ -355,7 +392,7 @@ describe('Database Migrations', () => {
       const migrations = [
         '001_create_tables.sql',
         '004_payments_stripe_integration.sql',
-        '006_security_admin_setup.sql'
+        '006_security_admin_setup.sql',
       ];
 
       for (const migrationFile of migrations) {
@@ -365,22 +402,20 @@ describe('Database Migrations', () => {
       }
 
       // Assert - Check security tables exist
-      const securityTables = [
-        'security_events',
-        'admin_users',
-        'security_alerts',
-        'audit_logs'
-      ];
+      const securityTables = ['security_events', 'admin_users', 'security_alerts', 'audit_logs'];
 
       for (const tableName of securityTables) {
-        const result = await client.query(`
+        const result = await client.query(
+          `
           SELECT EXISTS (
             SELECT 1
             FROM information_schema.tables
             WHERE table_schema = 'public'
             AND table_name = $1
           );
-        `, [tableName]);
+        `,
+          [tableName],
+        );
 
         expect(result.rows[0].exists).toBe(true);
       }
@@ -391,7 +426,7 @@ describe('Database Migrations', () => {
       const migrations = [
         '001_create_tables.sql',
         '004_payments_stripe_integration.sql',
-        '006_security_admin_setup.sql'
+        '006_security_admin_setup.sql',
       ];
 
       for (const migrationFile of migrations) {
@@ -408,13 +443,10 @@ describe('Database Migrations', () => {
         AND routine_type = 'FUNCTION';
       `);
 
-      const functionNames = functions.rows.map(row => row.routine_name);
+      const functionNames = functions.rows.map((row) => row.routine_name);
 
       expect(functionNames).toEqual(
-        expect.arrayContaining([
-          'update_updated_at_column',
-          'handle_subscription_status_change'
-        ])
+        expect.arrayContaining(['update_updated_at_column', 'handle_subscription_status_change']),
       );
 
       // Check triggers exist
@@ -424,13 +456,13 @@ describe('Database Migrations', () => {
         WHERE trigger_schema = 'public';
       `);
 
-      const triggerNames = triggers.rows.map(row => row.trigger_name);
+      const triggerNames = triggers.rows.map((row) => row.trigger_name);
 
       expect(triggerNames).toEqual(
         expect.arrayContaining([
           'update_subscription_plans_updated_at',
-          'subscription_status_change_trigger'
-        ])
+          'subscription_status_change_trigger',
+        ]),
       );
     });
   });

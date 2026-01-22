@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { SupabaseService } from '../../../../src/infrastructure/supabase/supabase.service';
 import { PaymentsService } from '../../../../src/modules/payments/payments.service';
 import { StripeService } from '../../../../src/modules/payments/stripe.service';
@@ -11,34 +12,34 @@ const mockSupabaseClient = {
         eq: jest.fn(() => ({
           single: jest.fn(() => ({
             data: null,
-            error: { code: 'PGRST116' }
-          }))
-        }))
-      }))
+            error: { code: 'PGRST116' },
+          })),
+        })),
+      })),
     })),
     insert: jest.fn(() => ({
       select: jest.fn(() => ({
         single: jest.fn(() => ({
           data: { id: 'test-id' },
-          error: null
-        }))
-      }))
+          error: null,
+        })),
+      })),
     })),
     update: jest.fn(() => ({
       eq: jest.fn(() => ({
         select: jest.fn(() => ({
           single: jest.fn(() => ({
             data: { id: 'test-id' },
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }))
+            error: null,
+          })),
+        })),
+      })),
+    })),
+  })),
 };
 
 const mockSupabaseService = {
-  getClient: jest.fn(() => mockSupabaseClient)
+  getClient: jest.fn(() => mockSupabaseClient),
 };
 
 const mockStripeService = {
@@ -48,7 +49,7 @@ const mockStripeService = {
   getSubscription: jest.fn(),
   listCustomerSubscriptions: jest.fn(),
   createPaymentIntent: jest.fn(),
-  processWebhookEvent: jest.fn()
+  processWebhookEvent: jest.fn(),
 };
 
 describe('Database Schema Validation', () => {
@@ -62,13 +63,13 @@ describe('Database Schema Validation', () => {
         PaymentsService,
         {
           provide: SupabaseService,
-          useValue: mockSupabaseService
+          useValue: mockSupabaseService,
         },
         {
           provide: StripeService,
-          useValue: mockStripeService
-        }
-      ]
+          useValue: mockStripeService,
+        },
+      ],
     }).compile();
 
     paymentsService = module.get<PaymentsService>(PaymentsService);
@@ -90,14 +91,17 @@ describe('Database Schema Validation', () => {
         features: ['Hasta 100 habitaciones', 'Sistema de reservas básico'],
         is_active: true,
         created_at: '2026-01-19T00:00:00.000Z',
-        updated_at: '2026-01-19T00:00:00.000Z'
+        updated_at: '2026-01-19T00:00:00.000Z',
       };
 
       const fromMock = mockSupabaseClient.from();
-      fromMock.select().eq().order.mockResolvedValue({
-        data: [mockPlan],
-        error: null
-      });
+      fromMock
+        .select()
+        .eq()
+        .order.mockResolvedValue({
+          data: [mockPlan],
+          error: null,
+        });
 
       // Act
       const result = await paymentsService.getSubscriptionPlans();
@@ -132,7 +136,7 @@ describe('Database Schema Validation', () => {
       // Array validations
       expect(Array.isArray(plan.features)).toBe(true);
       expect(plan.features.length).toBeGreaterThan(0);
-      expect(plan.features.every(f => typeof f === 'string')).toBe(true);
+      expect(plan.features.every((f) => typeof f === 'string')).toBe(true);
     });
 
     it('should validate subscription data structure', async () => {
@@ -156,38 +160,46 @@ describe('Database Schema Validation', () => {
           id: '550e8400-e29b-41d4-a716-446655440005',
           name: 'Hotel Basic',
           price_cents: 2999,
-          currency: 'usd'
-        }
+          currency: 'usd',
+        },
       };
 
       const fromMock = mockSupabaseClient.from();
       fromMock.select().eq().eq().single.mockResolvedValue({
         data: mockSubscription,
-        error: null
+        error: null,
       });
 
       // Act
       const result = await paymentsService.getUserSubscription(
         mockSubscription.user_id,
-        mockSubscription.agency_id
+        mockSubscription.agency_id,
       );
 
       // Assert - Validate subscription structure
       expect(result).not.toBeNull();
       expect(result!.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-      expect(result!.user_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-      expect(result!.agency_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(result!.user_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(result!.agency_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
 
       // Stripe ID validation
       expect(result!.stripe_subscription_id).toMatch(/^sub_/);
 
       // Status enum validation
-      expect(['active', 'canceled', 'incomplete', 'past_due', 'trialing']).toContain(result!.status);
+      expect(['active', 'canceled', 'incomplete', 'past_due', 'trialing']).toContain(
+        result!.status,
+      );
 
       // Date validations
       expect(result!.current_period_start).toBeInstanceOf(Date);
       expect(result!.current_period_end).toBeInstanceOf(Date);
-      expect(result!.current_period_end.getTime()).toBeGreaterThan(result!.current_period_start.getTime());
+      expect(result!.current_period_end.getTime()).toBeGreaterThan(
+        result!.current_period_start.getTime(),
+      );
 
       // Plan relationship validation
       expect(result!.plan).toBeDefined();
@@ -212,20 +224,20 @@ describe('Database Schema Validation', () => {
           is_subscription_payment: true,
           subscription_id: '550e8400-e29b-41d4-a716-446655440001',
           metadata: { invoice_id: 'inv_123' },
-          created_at: '2026-01-19T00:00:00.000Z'
-        }
+          created_at: '2026-01-19T00:00:00.000Z',
+        },
       ];
 
       const fromMock = mockSupabaseClient.from();
       fromMock.select().eq().eq().order.mockResolvedValue({
         data: mockPayments,
-        error: null
+        error: null,
       });
 
       // Act
       const result = await paymentsService.getUserPayments(
         mockPayments[0].user_id,
-        mockPayments[0].agency_id
+        mockPayments[0].agency_id,
       );
 
       // Assert - Validate payments structure
@@ -234,8 +246,12 @@ describe('Database Schema Validation', () => {
 
       // UUID validations
       expect(payment.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-      expect(payment.user_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-      expect(payment.agency_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(payment.user_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(payment.agency_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
 
       // Stripe ID validations
       expect(payment.stripe_payment_intent_id).toMatch(/^pi_/);
@@ -259,7 +275,9 @@ describe('Database Schema Validation', () => {
 
       // Optional fields
       if (payment.subscription_id) {
-        expect(payment.subscription_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+        expect(payment.subscription_id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        );
       }
 
       // Metadata validation
@@ -275,11 +293,13 @@ describe('Database Schema Validation', () => {
       // by attempting operations that would fail with missing data
 
       // Test subscription creation with missing planId
-      await expect(paymentsService.createSubscription(
-        'user-id',
-        'agency-id',
-        '' // Empty planId should cause validation error
-      )).rejects.toThrow();
+      await expect(
+        paymentsService.createSubscription(
+          'user-id',
+          'agency-id',
+          '', // Empty planId should cause validation error
+        ),
+      ).rejects.toThrow();
 
       // Verify the call was made with empty planId
       expect(mockStripeService.createSubscription).not.toHaveBeenCalled();
@@ -294,7 +314,7 @@ describe('Database Schema Validation', () => {
         name: '', // Empty name
         price_cents: -100, // Negative price
         currency: 'invalid',
-        interval: 'invalid'
+        interval: 'invalid',
       };
 
       // Act & Assert - Service should handle invalid data appropriately
@@ -322,14 +342,14 @@ describe('Database Schema Validation', () => {
         plan: {
           id: '550e8400-e29b-41d4-a716-446655440005',
           name: 'Hotel Basic',
-          price_cents: 2999
-        }
+          price_cents: 2999,
+        },
       };
 
       const fromMock = mockSupabaseClient.from();
       fromMock.select().eq().eq().single.mockResolvedValue({
         data: mockSubscription,
-        error: null
+        error: null,
       });
 
       // Act
@@ -355,29 +375,37 @@ describe('Database Schema Validation', () => {
           stripe_payment_intent_id: 'pi_1234567890',
           amount_cents: 2999,
           currency: 'usd',
-          status: 'succeeded'
-        }
+          status: 'succeeded',
+        },
       ];
 
       const fromMock = mockSupabaseClient.from();
       fromMock.select().eq().eq().order.mockResolvedValue({
         data: mockPayments,
-        error: null
+        error: null,
       });
 
       // Act
       const result = await paymentsService.getUserPayments(
         mockPayments[0].user_id,
-        mockPayments[0].agency_id
+        mockPayments[0].agency_id,
       );
 
       // Assert - All IDs should be valid UUIDs
-      result.forEach(payment => {
-        expect(payment.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-        expect(payment.user_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-        expect(payment.agency_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      result.forEach((payment) => {
+        expect(payment.id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        );
+        expect(payment.user_id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        );
+        expect(payment.agency_id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        );
         if (payment.subscription_id) {
-          expect(payment.subscription_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+          expect(payment.subscription_id).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          );
         }
       });
     });

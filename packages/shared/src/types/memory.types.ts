@@ -15,7 +15,7 @@ export interface EpisodicMemory extends BaseEntity {
   sessionId: string;
   interactionType: InteractionType;
   content: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   outcome: MemoryOutcome;
   importance: number; // 0-1 scale
   consolidationCount: number;

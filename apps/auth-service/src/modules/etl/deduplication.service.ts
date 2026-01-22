@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { EtlRecord } from './interfaces/etl.interface';
 
 @Injectable()
@@ -35,11 +36,7 @@ export class DeduplicationService {
    */
   private getRecordId(record: EtlRecord<unknown>): string {
     // Try different ID fields
-    return (
-      record.id ||
-      record.sequenceNumber?.toString() ||
-      JSON.stringify(record.data)
-    );
+    return record.id || record.sequenceNumber?.toString() || JSON.stringify(record.data);
   }
 
   /**

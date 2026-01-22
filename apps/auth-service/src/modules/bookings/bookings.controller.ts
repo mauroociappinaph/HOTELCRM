@@ -10,9 +10,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { BookingsService } from './bookings.service';
 import { BookingStatus } from '@hotel-crm/shared';
+
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+
+import { BookingsService } from './bookings.service';
 
 @ApiTags('bookings')
 @ApiBearerAuth()

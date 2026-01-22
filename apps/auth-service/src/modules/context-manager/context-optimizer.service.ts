@@ -94,7 +94,7 @@ export class ContextOptimizerService {
   async optimizeContext(
     chunks: ContextChunk[],
     targetTokens: number,
-    strategies: Partial<OptimizationStrategy>[] = []
+    strategies: Partial<OptimizationStrategy>[] = [],
   ): Promise<OptimizedContext> {
     const startTime = Date.now();
     const originalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
@@ -106,7 +106,7 @@ export class ContextOptimizerService {
     const { optimizedChunks, appliedStrategies, totalChunksRemoved } = await this.applyStrategies(
       chunks,
       activeStrategies,
-      targetTokens
+      targetTokens,
     );
 
     // Final token count check and trimming
@@ -139,7 +139,7 @@ export class ContextOptimizerService {
   private async applyStrategies(
     chunks: ContextChunk[],
     strategies: OptimizationStrategy[],
-    targetTokens: number
+    targetTokens: number,
   ): Promise<{
     optimizedChunks: ContextChunk[];
     appliedStrategies: string[];
@@ -151,7 +151,7 @@ export class ContextOptimizerService {
     let totalChunksRemoved = 0;
     let totalChunksCompressed = 0;
 
-    for (const strategy of strategies.filter(s => s.isEnabled)) {
+    for (const strategy of strategies.filter((s) => s.isEnabled)) {
       try {
         const result = await this.applyStrategy(strategy, optimizedChunks, targetTokens);
         optimizedChunks = result.chunks;
@@ -163,7 +163,7 @@ export class ContextOptimizerService {
         }
 
         this.logger.debug(
-          `Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`
+          `Applied ${strategy.name}: removed ${result.chunksRemoved}, compressed ${result.chunksCompressed}`,
         );
       } catch (error) {
         this.logger.warn(`Strategy ${strategy.name} failed:`, error);
@@ -184,7 +184,7 @@ export class ContextOptimizerService {
    */
   private async ensureTokenLimit(
     chunks: ContextChunk[],
-    targetTokens: number
+    targetTokens: number,
   ): Promise<ContextChunk[]> {
     const currentTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
     if (currentTokens > targetTokens) {

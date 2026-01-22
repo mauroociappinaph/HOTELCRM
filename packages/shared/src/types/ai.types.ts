@@ -11,7 +11,7 @@ export interface ContextChunk {
   relevanceScore: number;
   tokenCount: number;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueryContext {
@@ -63,8 +63,8 @@ export interface AiUsageLog extends BaseEntity {
   modelUsed: string;
   tokensUsed: number;
   costUsd: number;
-  requestData: Record<string, any>;
-  responseData: Record<string, any>;
+  requestData: Record<string, unknown>;
+  responseData: Record<string, unknown>;
 }
 
 export interface AiRecommendation extends BaseEntity {
@@ -74,5 +74,5 @@ export interface AiRecommendation extends BaseEntity {
   title: string;
   description: string;
   confidenceScore: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }

@@ -19,14 +19,24 @@ const CIRCUIT_BREAKER_CONFIG = {
 const ATTACK_PATTERNS = {
   RSC_DESERIALIZATION: /__nextjs_action__|__nextjs_server_action__/,
   FLIGHT_PROTOCOL_ABUSE: /_next\/flight\/[^/]+\/[^/]+/,
-  MALICIOUS_PAYLOADS: /(\\\\|\\u00|\\x[0-9a-f]{2}|%[0-9a-f]{2}){10,}/i,
-  SUSPICIOUS_HEADERS: /(x-forwarded-for.*){2,}/i,
-  SQL_INJECTION: /(\b(select|union|insert|update|delete|drop|create|alter)\b.*\b(from|into|table|database)\b)/i,
+  MALICIOUS_PAYLOADS: /\\\\|\\u00|\\x[0-9a-f]{2}|%[0-9a-f]{2}/i,
+  SUSPICIOUS_HEADERS: /x-forwarded-for.*x-forwarded-for/i,
+  SQL_INJECTION:
+    /(\b(select|union|insert|update|delete|drop|create|alter)\b.*\b(from|into|table|database)\b)/i,
 };
 
 // In-memory storage (in production, use Redis or database)
 const rateLimitStore = new Map<string, { count: number; resetTime: number; blocked: boolean }>();
-const circuitBreakerStore = new Map<string, { failures: number; successes: number; state: 'closed' | 'open' | 'half-open'; lastFailure: number; nextAttempt: number }>();
+const circuitBreakerStore = new Map<
+  string,
+  {
+    failures: number;
+    successes: number;
+    state: 'closed' | 'open' | 'half-open';
+    lastFailure: number;
+    nextAttempt: number;
+  }
+>();
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -54,7 +64,7 @@ function isRateLimited(identifier: string): boolean {
     rateLimitStore.set(identifier, {
       count: 1,
       resetTime: now + RATE_LIMITS.windowMs,
-      blocked: false
+      blocked: false,
     });
     return false;
   }
@@ -89,7 +99,7 @@ function checkCircuitBreaker(service: string): 'closed' | 'open' | 'half-open' {
       successes: 0,
       state: 'closed',
       lastFailure: 0,
-      nextAttempt: 0
+      nextAttempt: 0,
     });
     return 'closed';
   }
@@ -114,7 +124,10 @@ function updateCircuitBreaker(service: string, success: boolean): void {
     record.successes++;
     record.failures = 0;
 
-    if (record.state === 'half-open' && record.successes >= CIRCUIT_BREAKER_CONFIG.successThreshold) {
+    if (
+      record.state === 'half-open' &&
+      record.successes >= CIRCUIT_BREAKER_CONFIG.successThreshold
+    ) {
       record.state = 'closed';
       record.successes = 0;
     }
@@ -164,12 +177,12 @@ async function logSecurityEvent(event: {
   request_method: string;
   attack_pattern?: string;
   confidence_score?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }): Promise<void> {
   try {
     // Import security monitor dynamically to avoid circular dependencies
     const { securityMonitor } = await import('./lib/security-monitor');
-    await securityMonitor.logSecurityEvent(event as any);
+    await securityMonitor.logSecurityEvent(event as unknown as any);
   } catch (error) {
     console.error('[SECURITY LOGGING ERROR]', error);
     // Fallback to console logging
@@ -201,7 +214,7 @@ export async function middleware(request: NextRequest) {
       source_ip: clientIP,
       request_path: path,
       request_method: method,
-      metadata: { circuit_breaker: 'web-app' }
+      metadata: { circuit_breaker: 'web-app' },
     });
 
     return new NextResponse('Service temporarily unavailable', { status: 503 });
@@ -217,7 +230,7 @@ export async function middleware(request: NextRequest) {
       source_ip: clientIP,
       request_path: path,
       request_method: method,
-      metadata: { rate_limit_exceeded: true }
+      metadata: { rate_limit_exceeded: true },
     });
 
     return new NextResponse('Too many requests', {
@@ -225,8 +238,8 @@ export async function middleware(request: NextRequest) {
       headers: {
         'Retry-After': '3600',
         'X-RateLimit-Limit': RATE_LIMITS.maxRequests.toString(),
-        'X-RateLimit-Reset': Math.ceil((Date.now() + RATE_LIMITS.windowMs) / 1000).toString()
-      }
+        'X-RateLimit-Reset': Math.ceil((Date.now() + RATE_LIMITS.windowMs) / 1000).toString(),
+      },
     });
   }
 
@@ -245,8 +258,8 @@ export async function middleware(request: NextRequest) {
       confidence_score: attackDetection.confidence,
       metadata: {
         user_agent: request.headers.get('user-agent'),
-        referer: request.headers.get('referer')
-      }
+        referer: request.headers.get('referer'),
+      },
     });
 
     return new NextResponse('Bad request', { status: 400 });
@@ -263,17 +276,18 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
   // Content Security Policy (restrictive)
-  response.headers.set('Content-Security-Policy',
+  response.headers.set(
+    'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self'; " +
-    "connect-src 'self' https://*.supabase.co https://*.daily.co; " +
-    "frame-src 'self' https://*.daily.co; " +
-    "object-src 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self';"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self'; " +
+      "connect-src 'self' https://*.supabase.co https://*.daily.co; " +
+      "frame-src 'self' https://*.daily.co; " +
+      "object-src 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self';",
   );
 
   // Update circuit breaker on success

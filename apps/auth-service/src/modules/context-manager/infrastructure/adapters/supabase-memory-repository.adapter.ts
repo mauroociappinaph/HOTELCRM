@@ -6,6 +6,7 @@ import {
   MemoryQuery,
   MemoryResult,
 } from '@hotel-crm/shared';
+
 import { MemoryRepositoryPort } from '../../domain/ports/memory-repository.port';
 import { SupabaseService } from '../../../../infrastructure/supabase/supabase.service';
 
@@ -75,14 +76,14 @@ export class SupabaseMemoryRepositoryAdapter implements MemoryRepositoryPort {
       type: 'episodic',
       content: this.mapEpisodicFromDb(memory),
       relevanceScore: 0, // Should be calculated by service
-      recencyScore: 0,   // Should be calculated by service
+      recencyScore: 0, // Should be calculated by service
       importanceScore: memory.importance,
     }));
   }
 
   async consolidateEpisodic(userId: string, agencyId: string, threshold: number): Promise<void> {
     const client = this.supabaseService.getClient();
-    
+
     // This method is complex, for now we mark as consolidated
     // The actual logic of pattern extraction stays in the service
     const { error } = await client

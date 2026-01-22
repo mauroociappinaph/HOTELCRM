@@ -1,7 +1,8 @@
 'use client';
 
-import { useAuth } from '../lib/auth-context';
 import { SUPPORTED_LANGUAGES, TAX_RATES } from '@hotel-crm/shared';
+
+import { useAuth } from '../lib/auth-context';
 
 export default function HomePage() {
   const { user, profile, loading, signInWithGoogle, signOut } = useAuth();

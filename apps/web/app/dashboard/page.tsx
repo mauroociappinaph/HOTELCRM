@@ -1,29 +1,15 @@
 'use client';
 
-import { useAuth } from '../../lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+
+import { useAuth } from '../../lib/auth-context';
 import { useDashboardStore } from '../../lib/stores/dashboard-store';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../src/components/ui/card';
-import { Button } from '../../src/components/ui/button';
-import { Badge } from '../../src/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../../src/components/ui/avatar';
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
-  const {
-    stats,
-    recentActivity,
-    loading: dashboardLoading,
-    fetchDashboardData,
-  } = useDashboardStore();
+  const { stats, loading: dashboardLoading, fetchDashboardData } = useDashboardStore();
 
   // Redirect if not authenticated
   useEffect(() => {
