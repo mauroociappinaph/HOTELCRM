@@ -9,6 +9,13 @@ import {
   UnauthorizedException,
   Param,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
 
@@ -16,6 +23,7 @@ import { AuthService } from './auth.service';
  * Controlador de autenticación con Supabase Auth.
  * Expone endpoints para Google OAuth, session management y user profiles.
  */
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -24,6 +32,8 @@ export class AuthController {
    * Health check del servicio de autenticación.
    */
   @Get('health')
+  @ApiOperation({ summary: 'Verificar estado del servicio de autenticación' })
+  @ApiResponse({ status: 200, description: 'Servicio saludable' })
   healthCheck() {
     return {
       service: 'auth-service',
@@ -37,6 +47,8 @@ export class AuthController {
    * Endpoint de prueba para verificar conexión a Supabase.
    */
   @Get('test-connection')
+  @ApiOperation({ summary: 'Probar conexión con Supabase' })
+  @ApiResponse({ status: 200, description: 'Conexión exitosa' })
   async testConnection() {
     return this.authService.testSupabaseConnection();
   }
@@ -45,6 +57,8 @@ export class AuthController {
    * Genera URL de login con Google OAuth.
    */
   @Get('google/login')
+  @ApiOperation({ summary: 'Obtener URL de autenticación de Google' })
+  @ApiQuery({ name: 'redirect_to', required: false, description: 'URL de redirección post-login' })
   async getGoogleLoginUrl(@Query('redirect_to') redirectTo?: string) {
     return this.authService.getGoogleLoginUrl(redirectTo);
   }
@@ -53,6 +67,10 @@ export class AuthController {
    * Obtiene información del usuario actual.
    */
   @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Perfil recuperado' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   async getCurrentUser(@Headers('authorization') authHeader?: string) {
     // Extraer token del header Authorization: Bearer <token>
     const token = authHeader?.replace('Bearer ', '');
@@ -63,6 +81,8 @@ export class AuthController {
    * Cierra la sesión del usuario.
    */
   @Post('logout')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cerrar sesión' })
   async signOut(@Headers('authorization') authHeader?: string) {
     const token = authHeader?.replace('Bearer ', '');
     return this.authService.signOut(token);

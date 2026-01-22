@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 import { EnvironmentValidation } from './config/env.validation';
@@ -12,6 +13,23 @@ async function bootstrap() {
   await EnvironmentValidation.validateAll();
 
   const app = await NestFactory.create(AppModule);
+
+  // 📚 Swagger Configuration
+  const config = new DocumentBuilder()
+    .setTitle('HOTELCRM - Auth & Operations Service')
+    .setDescription(
+      'API central para la gestión de autenticación, operaciones inteligentes (RAG), ' +
+        'pagos y coordinación de tareas hoteleras.',
+    )
+    .setVersion('1.0')
+    .addTag('auth', 'Gestión de identidad y acceso')
+    .addTag('ai', 'Inteligencia Artificial y sistema RAG')
+    .addTag('payments', 'Procesamiento de pagos con Stripe')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
 
   // Prefijo global para todas las rutas
   app.setGlobalPrefix('api/v1');
