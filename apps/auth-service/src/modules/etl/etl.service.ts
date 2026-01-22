@@ -14,42 +14,11 @@ import { DeduplicationService } from './deduplication.service';
 import { BatchProcessorService } from './batch-processor.service';
 import { StreamingProcessorService } from './streaming-processor.service';
 
-export interface EtlPipelineConfig {
-  pipelineId: string;
-  sourceType: 'database' | 'api' | 'file' | 'stream';
-  destinationTable: string;
-  batchSize: number;
-  watermarkDelayMinutes: number;
-  deduplicationWindowMinutes: number;
-  maxRetries: number;
-  retryDelayMs: number;
-  enableStreaming: boolean;
-  enableBatch: boolean;
-}
-
-export interface EtlJob {
-  id: string;
-  pipelineId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'retrying';
-  startTime: Date;
-  endTime?: Date;
-  recordsProcessed: number;
-  recordsFailed: number;
-  watermark: Date;
-  lastEventTime?: Date;
-  error?: string;
-  retryCount: number;
-}
-
-export interface EtlRecord {
-  id: string;
-  eventTime: Date;
-  processingTime: Date;
-  data: Record<string, any>;
-  source: string;
-  partitionKey?: string;
-  sequenceNumber?: number;
-}
+import {
+  EtlPipelineConfig,
+  EtlJob,
+  EtlRecord,
+} from './interfaces/etl.interface';
 
 @Injectable()
 export class EtlService implements OnModuleInit {

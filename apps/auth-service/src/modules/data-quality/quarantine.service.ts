@@ -2,22 +2,22 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 
-export interface QuarantinedRecord {
+export interface QuarantinedRecord<T = any, C = Record<string, any>> {
   id?: string;
   agencyId: string; // Required for multitenancy
   recordId: string;
   gateId: string;
-  record: any;
+  record: T;
   rejectionReason: string;
-  validationErrors: any[];
+  validationErrors: Record<string, any>[];
   quarantinedAt: Date;
   reviewedAt?: Date;
   reviewedBy?: string;
   resolution?: 'approved' | 'rejected' | 'fixed' | 'pending';
-  fixedRecord?: any;
+  fixedRecord?: T;
   notes?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
-  context?: any;
+  context?: C;
 }
 
 export interface QuarantineStats {
@@ -42,7 +42,9 @@ export class QuarantineService {
   /**
    * Store a rejected record in quarantine
    */
-  async storeRejectedRecord(quarantinedRecord: Omit<QuarantinedRecord, 'id' | 'quarantinedAt'>): Promise<string> {
+  async storeRejectedRecord<T, C>(
+    quarantinedRecord: Omit<QuarantinedRecord<T, C>, 'id' | 'quarantinedAt'>
+  ): Promise<string> {
     try {
       const recordToStore = {
         ...quarantinedRecord,
@@ -60,12 +62,12 @@ export class QuarantineService {
             agency_id: recordToStore.agencyId,
             record_id: recordToStore.recordId,
             gate_id: recordToStore.gateId,
-            record: recordToStore.record,
+            record: recordToStore.record as any,
             rejection_reason: recordToStore.rejectionReason,
             validation_errors: recordToStore.validationErrors,
             quarantined_at: recordToStore.quarantinedAt.toISOString(),
             priority: recordToStore.priority,
-            context: recordToStore.context || {},
+            context: (recordToStore.context || {}) as any,
           },
         ])
         .select('id')
@@ -79,7 +81,7 @@ export class QuarantineService {
       this.logger.warn(
         `🚨 Record quarantined: ${recordToStore.recordId} for agency ${recordToStore.agencyId}`,
       );
-      return data.id;
+      return data.id as string;
     } catch (error) {
       this.logger.error(`Failed to quarantine record ${quarantinedRecord.recordId}:`, error);
       throw error;
@@ -89,14 +91,17 @@ export class QuarantineService {
   /**
    * Get quarantined records with filtering
    */
-  async getQuarantinedRecords(agencyId: string, filters?: {
-    gateId?: string;
-    priority?: string;
-    resolution?: string;
-    reviewed?: boolean;
-    limit?: number;
-    offset?: number;
-  }): Promise<QuarantinedRecord[]> {
+  async getQuarantinedRecords<T = any, C = any>(
+    agencyId: string, 
+    filters?: {
+      gateId?: string;
+      priority?: string;
+      resolution?: string;
+      reviewed?: boolean;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<QuarantinedRecord<T, C>[]> {
     try {
       const client = this.supabaseService.getClient();
       
@@ -142,7 +147,7 @@ export class QuarantineService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      return data.map((row) => this.mapFromDb(row));
+      return (data || []).map((row) => this.mapFromDb<T, C>(row));
     } catch (error) {
       this.logger.error('Failed to get quarantined records:', error);
       return [];
@@ -152,18 +157,18 @@ export class QuarantineService {
   /**
    * Review and resolve a quarantined record
    */
-  async reviewQuarantinedRecord(
+  async reviewQuarantinedRecord<T>(
     agencyId: string,
     recordId: string,
     resolution: 'approved' | 'rejected' | 'fixed',
     reviewedBy: string,
     notes?: string,
-    fixedRecord?: any,
+    fixedRecord?: T,
   ): Promise<boolean> {
     try {
       const client = this.supabaseService.getClient();
 
-      const updateData: any = {
+      const updateData: Record<string, any> = {
         resolution,
         reviewed_at: new Date().toISOString(),
         reviewed_by: reviewedBy,
@@ -171,7 +176,7 @@ export class QuarantineService {
       };
 
       if (fixedRecord) {
-        updateData.fixed_record = fixedRecord;
+        updateData.fixed_record = fixedRecord as any;
       }
 
       // 🛡️ SECURITY: Enforce agency_id on update
@@ -241,23 +246,23 @@ export class QuarantineService {
     }
   }
 
-  private mapFromDb(row: any): QuarantinedRecord {
+  private mapFromDb<T, C>(row: any): QuarantinedRecord<T, C> {
     return {
       id: row.id,
       agencyId: row.agency_id,
       recordId: row.record_id,
       gateId: row.gate_id,
-      record: row.record,
+      record: row.record as T,
       rejectionReason: row.rejection_reason,
-      validationErrors: row.validation_errors || [],
+      validationErrors: (row.validation_errors || []) as Record<string, any>[],
       quarantinedAt: new Date(row.quarantined_at),
       reviewedAt: row.reviewed_at ? new Date(row.reviewed_at) : undefined,
       reviewedBy: row.reviewed_by,
       resolution: row.resolution,
-      fixedRecord: row.fixed_record,
+      fixedRecord: row.fixed_record as T,
       notes: row.notes,
       priority: row.priority || 'medium',
-      context: row.context,
+      context: row.context as C,
     };
   }
 

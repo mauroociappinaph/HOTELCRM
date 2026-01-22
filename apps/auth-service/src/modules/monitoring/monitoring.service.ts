@@ -1,6 +1,18 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 
 /**
+ * Interface for DataDog DogStatsD functionality
+ */
+interface DogStatsD {
+  increment(metric: string, value?: number, tags?: string[]): void;
+  decrement(metric: string, value?: number, tags?: string[]): void;
+  gauge(metric: string, value: number, tags?: string[]): void;
+  histogram(metric: string, value: number, tags?: string[]): void;
+  distribution(metric: string, value: number, tags?: string[]): void;
+  timing(metric: string, value: number, tags?: string[]): void;
+}
+
+/**
  * DataDog APM Monitoring Service
  * Configures application performance monitoring and tracing
  */
@@ -175,7 +187,7 @@ export class MonitoringService implements OnModuleInit {
   /**
    * Setup business-specific metrics
    */
-  private setupBusinessMetrics(statsd: any): void {
+  private setupBusinessMetrics(statsd: DogStatsD): void {
     // These would be called from various services to track business metrics
     // For example:
     // statsd.increment('auth.login.success');
@@ -188,7 +200,7 @@ export class MonitoringService implements OnModuleInit {
   /**
    * Setup performance metrics
    */
-  private setupPerformanceMetrics(statsd: any): void {
+  private setupPerformanceMetrics(statsd: DogStatsD): void {
     // Memory usage tracking
     setInterval(() => {
       const memUsage = process.memoryUsage();
@@ -218,16 +230,16 @@ export class MonitoringService implements OnModuleInit {
   /**
    * Setup error tracking metrics
    */
-  private setupErrorMetrics(statsd: any): void {
+  private setupErrorMetrics(statsd: DogStatsD): void {
     // Error rate tracking
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', (error: Error) => {
       statsd.increment('nodejs.errors.uncaught_exception');
       this.logger.error('Uncaught exception tracked:', error.message);
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason: unknown) => {
       statsd.increment('nodejs.errors.unhandled_rejection');
-      this.logger.error('Unhandled rejection tracked:', reason);
+      this.logger.error('Unhandled rejection tracked:', String(reason));
     });
 
     this.logger.log('🚨 Error metrics configured');

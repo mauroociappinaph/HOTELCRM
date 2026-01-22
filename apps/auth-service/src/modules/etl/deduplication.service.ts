@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EtlRecord } from './interfaces/etl.interface';
 
 @Injectable()
 export class DeduplicationService {
@@ -8,8 +9,8 @@ export class DeduplicationService {
   /**
    * Deduplicate records based on ID and time window
    */
-  async deduplicate(records: any[], windowMinutes: number): Promise<any[]> {
-    const deduplicatedRecords: any[] = [];
+  async deduplicate<T>(records: EtlRecord<T>[], windowMinutes: number): Promise<EtlRecord<T>[]> {
+    const deduplicatedRecords: EtlRecord<T>[] = [];
     const seenIds = new Set<string>();
 
     for (const record of records) {
@@ -32,12 +33,10 @@ export class DeduplicationService {
   /**
    * Extract unique identifier from record
    */
-  private getRecordId(record: any): string {
+  private getRecordId(record: EtlRecord<any>): string {
     // Try different ID fields
     return (
       record.id ||
-      record.recordId ||
-      record.eventId ||
       record.sequenceNumber?.toString() ||
       JSON.stringify(record.data)
     );

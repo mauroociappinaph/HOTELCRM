@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+import { AuthenticatedRequest } from '../../common/interfaces/request.interface';
 
 import { PaymentsService } from './payments.service';
 
@@ -31,9 +32,9 @@ export class PaymentsController {
    * Get current user subscription
    */
   @Get('subscription')
-  async getUserSubscription(@Request() req: any) {
+  async getUserSubscription(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     return this.paymentsService.getUserSubscription(userId, agencyId);
   }
 
@@ -42,11 +43,11 @@ export class PaymentsController {
    */
   @Post('subscription')
   async createSubscription(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { planId: string; couponCode?: string },
   ) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
 
     if (!body.planId) {
       throw new BadRequestException('planId is required');
@@ -60,11 +61,11 @@ export class PaymentsController {
    */
   @Delete('subscription')
   async cancelSubscription(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { cancelAtPeriodEnd?: boolean } = {},
   ) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     const cancelAtPeriodEnd = body.cancelAtPeriodEnd ?? true;
 
     return this.paymentsService.cancelSubscription(userId, agencyId, cancelAtPeriodEnd);
@@ -74,9 +75,9 @@ export class PaymentsController {
    * Get payment history
    */
   @Get('history')
-  async getUserPayments(@Request() req: any) {
+  async getUserPayments(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     return this.paymentsService.getUserPayments(userId, agencyId);
   }
 
@@ -84,9 +85,9 @@ export class PaymentsController {
    * Get invoices
    */
   @Get('invoices')
-  async getUserInvoices(@Request() req: any) {
+  async getUserInvoices(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     return this.paymentsService.getUserInvoices(userId, agencyId);
   }
 
@@ -94,9 +95,9 @@ export class PaymentsController {
    * Get usage statistics
    */
   @Get('usage')
-  async getUsageStats(@Request() req: any) {
+  async getUsageStats(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
     return this.paymentsService.getUsageStats(userId, agencyId);
   }
 
@@ -104,9 +105,9 @@ export class PaymentsController {
    * Apply coupon to subscription
    */
   @Post('coupon')
-  async applyCoupon(@Request() req: any, @Body() body: { couponCode: string }) {
+  async applyCoupon(@Request() req: AuthenticatedRequest, @Body() body: { couponCode: string }) {
     const userId = req.user.id;
-    const agencyId = req.user.user_metadata?.agency_id || 'default';
+    const agencyId = (req.user.user_metadata?.agency_id as string) || 'default';
 
     if (!body.couponCode) {
       throw new BadRequestException('couponCode is required');
