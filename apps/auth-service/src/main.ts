@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { EnvironmentValidation } from './config/env.validation';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 /**
  * Bootstrap del microservicio de autenticación.
@@ -13,6 +16,21 @@ async function bootstrap() {
   await EnvironmentValidation.validateAll();
 
   const app = await NestFactory.create(AppModule);
+
+  // 🛡️ SECURITY HARDENING: Helmet
+  app.use(helmet());
+
+  // 🕵️ OBSERVABILITY: Logging Interceptor
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // 🛡️ SECURITY HARDENING: Validation Pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // 📚 Swagger Configuration
   const config = new DocumentBuilder()

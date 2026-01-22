@@ -1,74 +1,45 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
+import {
+  HealthCheck,
+  HealthCheckService,
+  MemoryHealthIndicator,
+  DiskHealthIndicator,
+} from '@nestjs/terminus';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 import { HealthService } from './health.service';
 
+/**
+ * 🏥 Health Dashboard para el servicio Auth & Operations.
+ * Proporciona endpoints para monitoreo de infraestructura y servicios externos.
+ */
+@ApiTags('health')
 @Controller('health')
 export class HealthController {
-  private readonly logger = new Logger(HealthController.name);
+  constructor(
+    private health: HealthCheckService,
+    private memory: MemoryHealthIndicator,
+    private disk: DiskHealthIndicator,
+    private customHealth: HealthService,
+  ) {}
 
-  constructor(private readonly healthService: HealthService) {}
-
-  /**
-   * Quick health check for load balancers and monitoring systems
-   * Returns simple status for fast health checks
-   */
   @Get()
-  async getHealth() {
-    try {
-      const health = await this.healthService.getQuickHealth();
-      return {
-        status: health.status,
-        timestamp: health.timestamp,
-        service: 'HOTELCRM Auth Service',
-        uptime: process.uptime(),
-      };
-    } catch (error) {
-      this.logger.error('Health check failed:', error);
-      return {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        service: 'HOTELCRM Auth Service',
-        error: 'Health check failed',
-      };
-    }
+  @HealthCheck()
+  @ApiOperation({ summary: 'Chequeo de salud integral del servicio' })
+  check() {
+    return this.health.check([
+      // Memoria: Máximo 300MB de Heap (ajustar según entorno)
+      () => this.memory.checkHeap('memory_heap', 300 * 1024 * 1024),
+      // Disco: Umbral de uso
+      () => this.disk.checkStorage('disk_storage', { path: '/', thresholdPercent: 0.9 }),
+      // Supabase: Conexión activa
+      () => this.customHealth.checkSupabaseConnection('supabase'),
+    ]);
   }
 
-  /**
-   * Comprehensive health check with detailed component status
-   * Used for monitoring dashboards and detailed diagnostics
-   */
-  @Get('detailed')
-  async getDetailedHealth() {
-    try {
-      const comprehensiveHealth = await this.healthService.getComprehensiveHealth();
-
-      return {
-        status: comprehensiveHealth.status,
-        timestamp: comprehensiveHealth.timestamp,
-        service: 'HOTELCRM Auth Service',
-        version: comprehensiveHealth.version,
-        uptime: comprehensiveHealth.uptime,
-        checks: comprehensiveHealth.checks,
-      };
-    } catch (error) {
-      this.logger.error('Detailed health check failed:', error);
-      return {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        service: 'HOTELCRM Auth Service',
-        error: 'Detailed health check failed',
-        uptime: process.uptime(),
-      };
-    }
-  }
-
-  /**
-   * Legacy endpoint for backward compatibility
-   * @deprecated Use /health/detailed instead
-   */
-  @Get('status')
-  async getStatus() {
-    this.logger.warn('Using deprecated /health/status endpoint, consider using /health/detailed');
-    return this.getDetailedHealth();
+  @Get('liveness')
+  @ApiOperation({ summary: 'Liveness probe básica' })
+  liveness() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
   }
 }
