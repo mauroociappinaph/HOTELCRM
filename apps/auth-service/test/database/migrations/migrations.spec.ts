@@ -10,11 +10,10 @@ describe('Database Migrations', () => {
 
   beforeAll(async () => {
     // Start PostgreSQL container
-    container = await new PostgreSqlContainer()
-      .withDatabase('testdb')
-      .withUsername('testuser')
-      .withPassword('testpass')
-      .withExposedPorts(5432)
+    container = await new PostgreSqlContainer('postgres:15-alpine')
+      .withDatabase('hotelcrm_test')
+      .withUsername('test')
+      .withPassword('test')
       .start();
 
     // Connect to the database
@@ -480,8 +479,8 @@ describe('Database Migrations', () => {
         // Simulate a migration that creates a table that already exists
         await client.query('CREATE TABLE agencies (id UUID PRIMARY KEY);');
         fail('Migration should have failed due to existing table');
-      } catch (error) {
-        // Assert - Error should be caught and handled
+      } catch (error: any) {
+        // Assert
         expect(error.message).toContain('already exists');
       }
 

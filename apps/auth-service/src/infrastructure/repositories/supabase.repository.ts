@@ -12,6 +12,17 @@ import {
   PaginatedResult,
   SearchQuery,
   SearchResult,
+  Option,
+  ChatSession,
+  ChatMessage,
+  ConversationOptions,
+  Booking,
+  User,
+  Document,
+  IChatRepository,
+  IBookingRepository,
+  IUserRepository,
+  IDocumentRepository,
 } from '@hotel-crm/shared';
 
 import { SupabaseService } from '../supabase/supabase.service';

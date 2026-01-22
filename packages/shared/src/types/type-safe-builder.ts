@@ -6,7 +6,7 @@
 /**
  * Generic Builder class with type safety
  */
-export class TypeSafeBuilder<T extends Record<string, unknown>, Required extends keyof T = never> {
+export class TypeSafeBuilder<T extends object, Required extends keyof T = never> {
   private data: Partial<T> = {};
   private requiredFields: Set<keyof T> = new Set();
 

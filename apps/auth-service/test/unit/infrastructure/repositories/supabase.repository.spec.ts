@@ -79,7 +79,7 @@ describe('SupabaseRepository (Security)', () => {
       // Check that the term inside %...% does not contain comma
       const matches = callArg.match(/ilike\.%([^%]+)%/g);
       if (matches) {
-        matches.forEach((match) => {
+        matches.forEach((match: string) => {
           expect(match).not.toContain('(');
           expect(match).not.toContain(')');
           // The match is "ilike.%testinjectionvalue%"

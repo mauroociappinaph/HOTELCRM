@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { SupabaseService } from '../../../../src/infrastructure/supabase/supabase.service';
-import { PaymentsService } from '../../../../src/modules/payments/payments.service';
-import { StripeService } from '../../../../src/modules/payments/stripe.service';
+import { SupabaseService } from '../../../src/infrastructure/supabase/supabase.service';
+import { PaymentsService } from '../../../src/modules/payments/payments.service';
+import { StripeService } from '../../../src/modules/payments/stripe.service';
 
 // Mock Supabase client
 const mockSupabaseClient = {
@@ -13,9 +13,18 @@ const mockSupabaseClient = {
           single: jest.fn(() => ({
             data: null,
             error: { code: 'PGRST116' },
-          })),
+          })) as any,
+          order: jest.fn(() => ({
+            mockResolvedValue: jest.fn(),
+          })) as any,
         })),
+        order: jest.fn(() => ({
+          mockResolvedValue: jest.fn(),
+        })) as any,
       })),
+      order: jest.fn(() => ({
+        mockResolvedValue: jest.fn(),
+      })) as any,
     })),
     insert: jest.fn(() => ({
       select: jest.fn(() => ({
@@ -136,7 +145,7 @@ describe('Database Schema Validation', () => {
       // Array validations
       expect(Array.isArray(plan.features)).toBe(true);
       expect(plan.features.length).toBeGreaterThan(0);
-      expect(plan.features.every((f) => typeof f === 'string')).toBe(true);
+      expect(plan.features.every((f: any) => typeof f === 'string')).toBe(true);
     });
 
     it('should validate subscription data structure', async () => {
@@ -392,7 +401,7 @@ describe('Database Schema Validation', () => {
       );
 
       // Assert - All IDs should be valid UUIDs
-      result.forEach((payment) => {
+      result.forEach((payment: any) => {
         expect(payment.id).toMatch(
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
         );

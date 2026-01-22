@@ -30,7 +30,7 @@ describe('PaymentsService', () => {
       createOrRetrieveCustomer: jest.fn(),
       createSubscription: jest.fn(),
       cancelSubscription: jest.fn(),
-    };
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
