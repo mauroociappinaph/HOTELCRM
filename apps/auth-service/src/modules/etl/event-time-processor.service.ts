@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-import { EtlRecord } from './etl.service';
+import { EtlRecord } from '@hotel-crm/shared';
 
 @Injectable()
 export class EventTimeProcessorService {

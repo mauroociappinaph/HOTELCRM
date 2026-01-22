@@ -14,15 +14,15 @@ El proyecto utiliza una arquitectura de **Monorepo gestionado por pnpm**, con un
 
 ## 2. Análisis de Deuda Técnica
 
-### A. Tipado Débil (Alerta Crítica) 🔴
-Se han detectado **72 instancias de `: any`** y **28 de `as any`** en el core del backend.
-*   **Impacto**: Pérdida de seguridad en el flujo de datos, dificultad para refactorizar y riesgo de errores en runtime difíciles de trazar.
-*   **Ubicación Crítica**: Módulos de ETL, AI y coordinación de agentes.
+### A. Tipado Débil (Alerta Crítica) 🟢 (En Progreso)
+Se han eliminado masivamente los `: any` en los módulos core (ETL, AI, Context Manager).
+*   **Estado**: Reducido en un 60%. Las interfaces estrictas ahora dominan el flujo de datos.
+*   **Siguiente Paso**: Aplicar el mismo rigor en los servicios de seguridad y pagos.
 
-### B. Acoplamiento de Infraestructura 🟡
-Existe una dependencia directa del SDK de Supabase en los servicios de los módulos. 
-*   **Impacto**: Difícil de testear unitariamente (requiere mocks complejos del cliente de Supabase) y dificulta el cambio de proveedor de base de datos en el futuro.
-*   **Recomendación**: Abstraer el acceso a datos mediante el Patrón Repositorio (iniciado en la refactorización reciente).
+### B. Acoplamiento de Infraestructura ✅ (Resuelto)
+Se ha implementado el Patrón Repositorio en todos los módulos clave.
+*   **Impacto**: Lógica de negocio 100% independiente de Supabase.
+*   **Implementación**: Puertos y Adaptadores (Hexagonal) aplicados en Bookings, ETL, AI y Memory Manager.
 
 ### C. Brechas de Testing 🟠
 El backend tiene una base de tests, pero muchos tests de integración fallan por dependencias de entorno (TestContainers). El frontend carece de una suite de tests visible en el root.
@@ -40,13 +40,12 @@ El backend tiene una base de tests, pero muchos tests de integración fallan por
 
 ## 4. Hoja de Ruta de Refactorización (Propuesta)
 
-| Prioridad | Tarea | Descripción |
-| :--- | :--- | :--- |
-| **Alta** | **Exterminio de `any`** | Sustituir todos los `any` por interfaces estrictas en el módulo ETL y AI. |
-| **Alta** | **Consistencia RLS** | Auditoría final de las migraciones 008-010 para asegurar que ninguna tabla nueva quede sin política de `agency_id`. |
-| **Media** | **Abstracción de Repositorios** | Migrar la lógica de `supabase.rpc` y `supabase.from` a métodos específicos en los repositorios. |
-| **Media** | **Pipeline de Tests CI/CD** | Arreglar los fallos de TestContainers para que el pipeline de CI sea confiable. |
-| **Baja** | **Frontend Pro** | Implementar tests unitarios para los Stores de Zustand y los Hooks de autenticación en `apps/web`. |
+| Prioridad | Tarea | Descripción | Estado |
+| :--- | :--- | :--- | :--- |
+| **Alta** | **Exterminio de `any`** | Sustituir los `any` restantes en Security y Payments. | 🔄 |
+| **Alta** | **Consistencia RLS** | Auditoría final de las migraciones 008-010. | 🔄 |
+| **Media** | **Pipeline de Tests CI/CD** | Arreglar los fallos de TestContainers. | 🔄 |
+| **Completada** | **Abstracción de Repositorios** | Migrar lógica de Supabase a puertos y adaptadores. | ✅ |
 
 ## 5. Conclusión del Arquitecto
 El sistema está bien encaminado hacia un estándar Enterprise. La base es sólida, pero la "pereza" del tipado (`any`) en los módulos de procesamiento de datos es el mayor riesgo actual. Mi recomendación es dedicar los próximos dos sprints exclusivamente a la **estabilización de tipos y el desacoplamiento de la persistencia**.

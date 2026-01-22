@@ -10,3 +10,4 @@ export * from './advanced-utils.types';
 export * from './auth.types';
 export * from './memory.types';
 export * from './etl.types';
+export * from './ai.types';

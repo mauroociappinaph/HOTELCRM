@@ -63,3 +63,21 @@ export interface PipelineStats {
   activeStreams: number;
   [key: string]: unknown;
 }
+
+export interface QualityGateResult {
+  gateId: string;
+  recordId: string;
+  passed: boolean;
+  rejectedReason?: string;
+  quarantined: boolean;
+  checks: DataQualityCheck;
+  processingTime: number;
+}
+
+export interface DataQualityCheck {
+  schemaValidation?: any;
+  businessRulesValidation?: any;
+  overallResult: boolean;
+  rejectedReason?: string;
+  checkTime: number;
+}
